@@ -65,7 +65,7 @@ namespace Wayland
                 else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
                     return serverObjects[(int)(id - ServerRangeBegin)];
                 else
-                    throw new ArgumentOutOfRangeException();
+                    throw new IndexOutOfRangeException();
             }
             set {
                 if (id >= ClientRangeBegin && id <= ClientRangeEnd)
@@ -73,7 +73,7 @@ namespace Wayland
                 else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
                     serverObjects[(int)(id - ServerRangeBegin)] = value;
                 else
-                    throw new ArgumentOutOfRangeException();
+                    throw new IndexOutOfRangeException();
             }
         }
     }
