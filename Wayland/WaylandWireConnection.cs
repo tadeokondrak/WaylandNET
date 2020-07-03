@@ -98,30 +98,38 @@ namespace Wayland
 
         public int ReadInt32()
         {
-            throw new Exception("unimplemented");
+            return binaryReader.ReadInt32();
         }
 
         public uint ReadUInt32()
         {
-            throw new Exception("unimplemented");
+            return binaryReader.ReadUInt32();
         }
 
         public double ReadDouble()
         {
-            throw new Exception("unimplemented");
+            int i = binaryReader.ReadInt32();
+            return i / 256;
         }
 
         public string ReadString()
         {
-            throw new Exception("unimplemented");
+            byte[] bytes = ReadBytes();
+            byte[] bytesWithoutNull = new byte[bytes.Length - 1];
+            Array.Copy(bytes, bytesWithoutNull, bytesWithoutNull.Length);
+            return Encoding.UTF8.GetString(bytesWithoutNull);
         }
 
-        public byte[] ReadByteArray()
+        public byte[] ReadBytes()
         {
-            throw new Exception("unimplemented");
+            int length = (int)binaryReader.ReadUInt32();
+            int paddedLength = length + 3 / 4 * 4;
+            byte[] bytes = binaryReader.ReadBytes(length);
+            binaryReader.ReadBytes(paddedLength - length);
+            return bytes;
         }
 
-        public IntPtr ReadFileDescriptor()
+        public IntPtr ReadHandle()
         {
             throw new NotSupportedException("File descriptors are currently not supported");
         }
