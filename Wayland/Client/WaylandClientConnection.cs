@@ -12,7 +12,7 @@ namespace Wayland.Client
         WaylandWireConnection wireConnection;
         WaylandObjectMap<WaylandProxy> objectMap;
 
-        public WlDisplay Display { get => (WlDisplay)objectMap[0]; }
+        public WlDisplay Display => (WlDisplay)objectMap[0];
 
         public WaylandClientConnection(string display = null)
         {
