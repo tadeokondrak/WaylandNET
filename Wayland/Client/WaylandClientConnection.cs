@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using Wayland;
 using Wayland.Client.Protocol;
 
 namespace Wayland.Client
