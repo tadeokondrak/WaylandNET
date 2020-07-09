@@ -49,44 +49,41 @@ namespace Wayland.Client
 
         public void Read()
         {
-            while (true)
+            WaylandMessageHeader message = wireConnection.ReadMessageHeader();
+            WaylandProxy proxy = objectMap[message.id];
+            WaylandType[] argumentTypes = proxy.Arguments(message.opcode);
+            List<Object> arguments = new List<Object>();
+            foreach (WaylandType type in argumentTypes)
             {
-                WaylandMessageHeader message = wireConnection.ReadMessageHeader();
-                WaylandProxy proxy = objectMap[message.id];
-                WaylandType[] argumentTypes = proxy.Arguments(message.opcode);
-                List<Object> arguments = new List<Object>();
-                foreach (WaylandType type in argumentTypes)
+                switch (type)
                 {
-                    switch (type)
-                    {
-                        case WaylandType.Int:
-                            arguments.Add(wireConnection.ReadInt32());
-                            break;
-                        case WaylandType.UInt:
-                            arguments.Add(wireConnection.ReadUInt32());
-                            break;
-                        case WaylandType.Fixed:
-                            arguments.Add(wireConnection.ReadDouble());
-                            break;
-                        case WaylandType.Object:
-                            arguments.Add(wireConnection.ReadUInt32());
-                            break;
-                        case WaylandType.NewId:
-                            arguments.Add(wireConnection.ReadUInt32());
-                            break;
-                        case WaylandType.String:
-                            arguments.Add(wireConnection.ReadString());
-                            break;
-                        case WaylandType.Array:
-                            arguments.Add(wireConnection.ReadBytes());
-                            break;
-                        case WaylandType.Handle:
-                            arguments.Add(wireConnection.ReadHandle());
-                            break;
-                    }
+                    case WaylandType.Int:
+                        arguments.Add(wireConnection.ReadInt32());
+                        break;
+                    case WaylandType.UInt:
+                        arguments.Add(wireConnection.ReadUInt32());
+                        break;
+                    case WaylandType.Fixed:
+                        arguments.Add(wireConnection.ReadDouble());
+                        break;
+                    case WaylandType.Object:
+                        arguments.Add(wireConnection.ReadUInt32());
+                        break;
+                    case WaylandType.NewId:
+                        arguments.Add(wireConnection.ReadUInt32());
+                        break;
+                    case WaylandType.String:
+                        arguments.Add(wireConnection.ReadString());
+                        break;
+                    case WaylandType.Array:
+                        arguments.Add(wireConnection.ReadBytes());
+                        break;
+                    case WaylandType.Handle:
+                        arguments.Add(wireConnection.ReadHandle());
+                        break;
                 }
-                proxy.Handle(message.opcode, arguments.ToArray());
             }
+            proxy.Handle(message.opcode, arguments.ToArray());
         }
 
         public void Flush()
