@@ -22,19 +22,10 @@ namespace Wayland
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                binaryReader.Dispose();
-                binaryWriter.Dispose();
-                networkStream.Dispose();
-                socket.Dispose();
-            }
+            binaryReader.Dispose();
+            binaryWriter.Dispose();
+            networkStream.Dispose();
+            socket.Dispose();
         }
 
         public WaylandMessageHeader ReadMessageHeader()
