@@ -42,7 +42,7 @@ namespace Wayland.Client
             objectMap = new WaylandObjectMap<WaylandProxy>();
 
             uint id = objectMap.AllocateClientId();
-            Display = new WlDisplay(id, this);
+            Display = new WlDisplay(id, 1, this);
             Display.Listener = new WlDisplayListener(this);
             objectMap[id] = Display;
         }

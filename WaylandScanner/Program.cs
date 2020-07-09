@@ -144,16 +144,11 @@ namespace WaylandScanner
             }
         }
 
-
-        static void GenerateInterfaceInterfaceProperty(CodeGenerator gen, Interface @interface)
-        {
-            gen.AppendLine($"public override string Interface => \"{@interface.Name}\";");
-        }
-
         static void GenerateInterfaceConstructor(CodeGenerator gen, Interface @interface)
         {
             using (gen.Block($"public {PascalCase(@interface.Name)}"
-                + $"(uint id, WaylandClientConnection connection) : base(id, connection)"))
+                + $"(uint id, uint version, WaylandClientConnection connection)"
+                + $" : base(\"{@interface.Name}\", id, version, connection)"))
             {
             }
         }
@@ -350,14 +345,14 @@ namespace WaylandScanner
                     if (returnArgument.Interface != null)
                     {
                         gen.AppendLine($"Connection.SetObject({CamelCase(returnArgument.Name)}, "
-                            + $"new {returnType}({CamelCase(returnArgument.Name)}, "
+                            + $"new {returnType}({CamelCase(returnArgument.Name)}, Version, "
                             + $"ClientConnection));");
                     }
                     else
                     {
                         gen.AppendLine($"Connection.SetObject({CamelCase(returnArgument.Name)}, "
                             + $"(WaylandProxy)Activator.CreateInstance(typeof({returnType}), "
-                            + $"{CamelCase(returnArgument.Name)}, "
+                            + $"{CamelCase(returnArgument.Name)}, version, "
                             + $"ClientConnection));");
                     }
                     gen.AppendLine($"return ({returnType})Connection.GetObject"
@@ -372,7 +367,6 @@ namespace WaylandScanner
             GenerateDescriptionComment(gen, @interface.Description);
             using (gen.Block($"public sealed class {PascalCase(@interface.Name)} : WaylandProxy"))
             {
-                GenerateInterfaceInterfaceProperty(gen, @interface);
                 GenerateInterfaceConstructor(gen, @interface);
                 GenerateInterfaceRequestOpcode(gen, @interface);
                 GenerateInterfaceEventOpcode(gen, @interface);
