@@ -53,7 +53,7 @@ namespace Wayland.Client
                 this.connection = connection;
             }
 
-            public void Error(WlDisplay wlDisplay, WaylandProxy objectId, uint code, string message)
+            public void Error(WlDisplay wlDisplay, WaylandClientObject objectId, uint code, string message)
             {
                 throw new WaylandProtocolException(objectId, code, message);
             }

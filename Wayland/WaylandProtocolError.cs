@@ -6,11 +6,11 @@ namespace Wayland.Client
     {
         string message;
 
-        public WaylandProxy Object { get; private set; }
+        public WaylandClientObject Object { get; private set; }
         public uint Code { get; private set; }
         public override string Message => message;
 
-        internal WaylandProtocolException(WaylandProxy @object, uint code, string message)
+        internal WaylandProtocolException(WaylandClientObject @object, uint code, string message)
         {
             Object = @object;
             Code = code;

@@ -62,11 +62,11 @@ namespace WaylandScanner
                 case "object":
                     return argument.Interface != null
                         ? PascalCase(argument.Interface)
-                        : "WaylandProxy";
+                        : "WaylandClientObject";
                 case "new_id":
                     return argument.Interface != null
                         ? PascalCase(argument.Interface)
-                        : "WaylandProxy";
+                        : "WaylandClientObject";
                 case "array":
                     return "byte[]";
                 case "fd":
@@ -308,7 +308,7 @@ namespace WaylandScanner
                 {
                     returnType = "T";
                     generics = "<T>";
-                    genericsWhere = " where T : WaylandProxy";
+                    genericsWhere = " where T : WaylandClientObject";
                 }
             }
             var args = new List<string>();
@@ -362,7 +362,7 @@ namespace WaylandScanner
                     else
                     {
                         gen.AppendLine($"Connection[{CamelCase(returnArgument.Name)}] = "
-                            + $"(WaylandProxy)Activator.CreateInstance(typeof({returnType}), "
+                            + $"(WaylandClientObject)Activator.CreateInstance(typeof({returnType}), "
                             + $"{CamelCase(returnArgument.Name)}, version, "
                             + $"ClientConnection);");
                     }
@@ -376,7 +376,7 @@ namespace WaylandScanner
         {
             gen.AppendLine($"/// {@interface.Name} version {@interface.Version}");
             GenerateDescriptionComment(gen, @interface.Description);
-            using (gen.Block($"public sealed class {PascalCase(@interface.Name)} : WaylandProxy"))
+            using (gen.Block($"public sealed class {PascalCase(@interface.Name)} : WaylandClientObject"))
             {
                 GenerateInterfaceConstructor(gen, @interface);
                 GenerateInterfaceRequestOpcode(gen, @interface);
