@@ -59,6 +59,12 @@ namespace Wayland
 
         public void DeallocateId(uint id)
         {
+            if (id >= ClientRangeBegin && id <= ClientRangeEnd)
+                clientFree.Add((int)(id - ClientRangeBegin));
+            else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
+                serverFree.Add((int)(id - ServerRangeBegin));
+            else
+                throw new IndexOutOfRangeException();
         }
 
         public T this[uint id]
