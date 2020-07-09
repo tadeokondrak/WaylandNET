@@ -28,6 +28,7 @@ namespace Wayland
             Interface = @interface;
             Id = id;
             Version = version;
+            IsAlive = true;
             Connection = connection;
         }
     }
