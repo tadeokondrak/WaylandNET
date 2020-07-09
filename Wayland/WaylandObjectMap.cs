@@ -3,71 +3,27 @@ using System.Collections.Generic;
 
 namespace Wayland
 {
-    public sealed class WaylandObjectMap<T> where T : WaylandObject
+    public abstract class WaylandObjectMap
     {
-        const uint ClientRangeBegin = 0x00000001;
-        const uint ClientRangeEnd = 0xfeffffff;
+        protected const uint ClientRangeBegin = 0x00000001;
+        protected const uint ClientRangeEnd = 0xfeffffff;
 
-        const uint ServerRangeBegin = 0xff000000;
-        const uint ServerRangeEnd = 0xffffffff;
+        protected const uint ServerRangeBegin = 0xff000000;
+        protected const uint ServerRangeEnd = 0xffffffff;
 
-        List<T> clientObjects;
-        List<int> clientFree;
+        protected List<WaylandObject> clientObjects;
+        protected List<WaylandObject> serverObjects;
 
-        List<T> serverObjects;
-        List<int> serverFree;
-
-        public WaylandObjectMap()
+        protected WaylandObjectMap()
         {
-            clientObjects = new List<T>();
-            clientFree = new List<int>();
-            serverObjects = new List<T>();
-            serverFree = new List<int>();
+            clientObjects = new List<WaylandObject>();
+            serverObjects = new List<WaylandObject>();
         }
 
-        public uint AllocateClientId()
-        {
-            if (clientFree.Count != 0)
-            {
-                int idx = clientFree[clientFree.Count - 1];
-                clientFree.RemoveAt(clientFree.Count - 1);
-                return ClientRangeBegin + (uint)idx;
-            }
-            else
-            {
-                int idx = clientObjects.Count;
-                clientObjects.Add(null);
-                return ClientRangeBegin + (uint)idx;
-            }
-        }
+        public abstract uint AllocateId();
+        public abstract void DeallocateId(uint id);
 
-        public uint AllocateServerId()
-        {
-            if (serverFree.Count != 0)
-            {
-                int idx = serverFree[serverFree.Count - 1];
-                serverFree.RemoveAt(serverFree.Count - 1);
-                return ServerRangeBegin + (uint)idx;
-            }
-            else
-            {
-                int idx = serverObjects.Count;
-                serverObjects.Add(null);
-                return ServerRangeBegin + (uint)idx;
-            }
-        }
-
-        public void DeallocateId(uint id)
-        {
-            if (id >= ClientRangeBegin && id <= ClientRangeEnd)
-                clientFree.Add((int)(id - ClientRangeBegin));
-            else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
-                serverFree.Add((int)(id - ServerRangeBegin));
-            else
-                throw new IndexOutOfRangeException();
-        }
-
-        public T this[uint id]
+        public WaylandObject this[uint id]
         {
             get {
                 if (id >= ClientRangeBegin && id <= ClientRangeEnd)

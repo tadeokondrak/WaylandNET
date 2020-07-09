@@ -41,10 +41,6 @@ namespace Wayland
             };
         }
 
-        public void Flush()
-        {
-        }
-
         public void Write(int i)
         {
             binaryWriter.Write(i);
