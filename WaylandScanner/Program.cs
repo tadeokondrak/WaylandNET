@@ -181,8 +181,10 @@ namespace WaylandScanner
                     GenerateDescriptionComment(gen, @event.Description);
                     foreach (var argument in @event.Arguments)
                         GenerateArgumentComment(gen, argument, false);
-                    var args = new List<string>();
-                    args.Add($"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}");
+                    var args = new List<string>()
+                    {
+                        $"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}",
+                    };
                     foreach (var argument in @event.Arguments)
                         args.Add($"{TypeForArgument(argument)} {CamelCase(argument.Name)}");
                     gen.AppendLine($"void {name}({String.Join(", ", args)});");
@@ -215,8 +217,10 @@ namespace WaylandScanner
                                         + $"({TypeForArgument(argument)})arguments[{i}];");;
                                     i++;
                                 }
-                                var args = new List<string>();
-                                args.Add("this");
+                                var args = new List<string>()
+                                {
+                                    "this",
+                                };
                                 foreach (var argument in @event.Arguments)
                                     args.Add($"{CamelCase(argument.Name)}");
                                 using (gen.Block("if (Listener != null)"))
@@ -328,8 +332,10 @@ namespace WaylandScanner
             {
                 if (returnArgument != null)
                     gen.AppendLine($"uint {CamelCase(returnArgument.Name)} = Connection.AllocateId();");
-                var marshalArgs = new List<string>();
-                marshalArgs.Add($"(ushort)RequestOpcode.{PascalCase(request.Name)}");
+                var marshalArgs = new List<string>()
+                {
+                    $"(ushort)RequestOpcode.{PascalCase(request.Name)}",
+                };
                 foreach (var argument in request.Arguments)
                 {
                     if (argument.Type == "new_id" && argument.Interface == null)
