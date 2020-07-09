@@ -8,11 +8,6 @@ namespace Wayland
         public abstract uint AllocateId();
         public abstract WaylandObject this[uint id] { get; set; }
 
-        ~WaylandConnection()
-        {
-            Dispose(false);
-        }
-
         public void Dispose()
         {
             Dispose(true);

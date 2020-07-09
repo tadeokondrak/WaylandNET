@@ -20,11 +20,6 @@ namespace Wayland
             binaryWriter = new BinaryWriter(networkStream);
         }
 
-        ~WaylandWireConnection()
-        {
-            Dispose(false);
-        }
-
         public void Dispose()
         {
             Dispose(true);
