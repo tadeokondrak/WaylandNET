@@ -346,7 +346,10 @@ namespace WaylandScanner
                         marshalArgs.Add("@interface");
                         marshalArgs.Add("version");
                     }
-                    marshalArgs.Add(CamelCase(argument.Name));
+                    if (argument.Type == "object")
+                        marshalArgs.Add($"{CamelCase(argument.Name)}.Id");
+                    else
+                        marshalArgs.Add(CamelCase(argument.Name));
                 }
                 gen.AppendLine($"Marshal({String.Join(", ", marshalArgs)});");
                 if (request.Type == "destructor")
@@ -376,7 +379,8 @@ namespace WaylandScanner
         {
             gen.AppendLine($"/// {@interface.Name} version {@interface.Version}");
             GenerateDescriptionComment(gen, @interface.Description);
-            using (gen.Block($"public sealed class {PascalCase(@interface.Name)} : WaylandClientObject"))
+            using (gen.Block(
+                $"public sealed class {PascalCase(@interface.Name)} : WaylandClientObject"))
             {
                 GenerateInterfaceConstructor(gen, @interface);
                 GenerateInterfaceRequestOpcode(gen, @interface);
