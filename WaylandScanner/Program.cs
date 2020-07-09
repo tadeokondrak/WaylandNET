@@ -128,6 +128,23 @@ namespace WaylandScanner
             gen.AppendLine($"/// </summary>");
         }
 
+        static void GenerateArgumentComment(CodeGenerator gen, Argument argument, bool isReturn)
+        {
+            if (!String.IsNullOrEmpty(argument.Summary))
+            {
+                if (isReturn)
+                {
+                    gen.AppendLine($"/// <returns>{argument.Summary}</returns>");
+                }
+                else
+                {
+                    gen.AppendLine($"/// <param name=\"{CamelCase(argument.Name)}\">"
+                        + $"{argument.Summary}</param>");
+                }
+            }
+        }
+
+
         static void GenerateInterfaceInterfaceProperty(CodeGenerator gen, Interface @interface)
         {
             gen.AppendLine($"public override string Interface => \"{@interface.Name}\";");
@@ -167,6 +184,8 @@ namespace WaylandScanner
                 {
                     var name = PascalCase(@event.Name);
                     GenerateDescriptionComment(gen, @event.Description);
+                    foreach (var argument in @event.Arguments)
+                        GenerateArgumentComment(gen, argument, false);
                     var args = new List<string>();
                     args.Add($"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}");
                     foreach (var argument in @event.Arguments)
@@ -307,6 +326,8 @@ namespace WaylandScanner
                 }
             }
             GenerateDescriptionComment(gen, request.Description);
+            foreach (var argument in request.Arguments)
+                GenerateArgumentComment(gen, argument, argument == returnArgument);
             using (gen.Block($"public {returnType} {PascalCase(request.Name)}{generics}"
                 + $"({String.Join(", ", args)}){genericsWhere}"))
             {
