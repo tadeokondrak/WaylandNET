@@ -1,14 +1,13 @@
-using Wayland;
-
 namespace Wayland.Client
 {
-    public class WaylandProxy : WaylandObject
+    public abstract class WaylandProxy : WaylandObject
     {
         uint id;
         WaylandClientConnection connection;
 
-        public override uint Id { get => id; }
-        public override WaylandConnection Connection { get => connection; }
+        public override uint Id => id;
+        public override WaylandConnection Connection => connection;
+        public WaylandClientConnection ClientConnection => connection;
 
         protected WaylandProxy(uint id, WaylandClientConnection connection)
         {
@@ -16,13 +15,12 @@ namespace Wayland.Client
             this.connection = connection;
         }
 
-        public override void Marshal(ushort opcode, params object[] arguments)
+        public override void Marshal(ushort opcode, object[] arguments)
         {
             Connection.Marshal(Id, opcode, arguments);
         }
 
-        public override void Handle(ushort opcode, params object[] arguments)
-        {
-        }
+        public abstract override void Handle(ushort opcode, object[] arguments);
+        public abstract override WaylandType[] Arguments(ushort opcode);
     }
 }

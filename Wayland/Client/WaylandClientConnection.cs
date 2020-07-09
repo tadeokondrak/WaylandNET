@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Wayland;
+using Wayland.Client.Protocol;
 
 namespace Wayland.Client
 {
@@ -12,13 +14,12 @@ namespace Wayland.Client
         WaylandWireConnection wireConnection;
         WaylandObjectMap<WaylandProxy> objectMap;
 
-        public WlDisplay Display => (WlDisplay)objectMap[1];
+        public WlDisplay Display { get; private set; }
 
         public WaylandClientConnection(string display = null)
         {
             display ??= Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
-            if (display == null)
-                display = "wayland-0";
+            display ??= "wayland-0";
 
             string path;
             if (display.StartsWith('/'))
@@ -41,7 +42,51 @@ namespace Wayland.Client
             objectMap = new WaylandObjectMap<WaylandProxy>();
 
             uint id = objectMap.AllocateClientId();
-            objectMap[id] = new WlDisplay(id, this);
+            Display = new WlDisplay(id, this);
+            Display.Listener = new WlDisplayListener(this);
+            objectMap[id] = Display;
+        }
+
+        public void Read()
+        {
+            while (true)
+            {
+                WaylandMessageHeader message = wireConnection.ReadMessageHeader();
+                WaylandProxy proxy = objectMap[message.id];
+                WaylandType[] argumentTypes = proxy.Arguments(message.opcode);
+                List<Object> arguments = new List<Object>();
+                foreach (WaylandType type in argumentTypes)
+                {
+                    switch (type)
+                    {
+                        case WaylandType.Int:
+                            arguments.Add(wireConnection.ReadInt32());
+                            break;
+                        case WaylandType.UInt:
+                            arguments.Add(wireConnection.ReadUInt32());
+                            break;
+                        case WaylandType.Fixed:
+                            arguments.Add(wireConnection.ReadDouble());
+                            break;
+                        case WaylandType.Object:
+                            arguments.Add(wireConnection.ReadUInt32());
+                            break;
+                        case WaylandType.NewId:
+                            arguments.Add(wireConnection.ReadUInt32());
+                            break;
+                        case WaylandType.String:
+                            arguments.Add(wireConnection.ReadString());
+                            break;
+                        case WaylandType.Array:
+                            arguments.Add(wireConnection.ReadBytes());
+                            break;
+                        case WaylandType.Handle:
+                            arguments.Add(wireConnection.ReadHandle());
+                            break;
+                    }
+                }
+                proxy.Handle(message.opcode, arguments.ToArray());
+            }
         }
 
         public void Flush()
@@ -49,12 +94,14 @@ namespace Wayland.Client
             wireConnection.Flush();
         }
 
+        public void Dispatch()
+        {
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
-            {
                 wireConnection.Dispose();
-            }
         }
 
         public override void Marshal(uint id, ushort opcode, params object[] arguments)
@@ -67,18 +114,17 @@ namespace Wayland.Client
                     case int i:
                     case uint u:
                     case double d:
-                    case WaylandObject o:
                         size += 4;
                         break;
                     case string s:
                         size += 4;
                         if (s != null)
-                            size += (ushort)(Encoding.UTF8.GetByteCount(s) + 3 / 4 * 4);
+                            size += (ushort)((Encoding.UTF8.GetByteCount(s) + 4) / 4 * 4);
                         break;
                     case byte[] a:
                         size += 4;
                         if (a != null)
-                            size += (ushort)(a.Length + 3 / 4 * 4);
+                            size += (ushort)((a.Length + 3) / 4 * 4);
                         break;
                     case IntPtr h:
                         break;
@@ -99,17 +145,14 @@ namespace Wayland.Client
                     case double d:
                         wireConnection.Write(d);
                         break;
-                    case WaylandObject o:
-                        if (o == null)
-                            wireConnection.Write((uint)0);
-                        else
-                            wireConnection.Write(o.Id);
-                        break;
                     case string s:
                         wireConnection.Write(s);
                         break;
                     case byte[] a:
                         wireConnection.Write(a);
+                        break;
+                    case IntPtr h:
+                        wireConnection.Write(h);
                         break;
                 }
             }
@@ -119,5 +162,36 @@ namespace Wayland.Client
         {
             return objectMap.AllocateClientId();
         }
+
+        public override WaylandObject GetObject(uint id)
+        {
+            return objectMap[id];
+        }
+
+        public override void SetObject(uint id, WaylandObject @object)
+        {
+            objectMap[id] = (WaylandProxy)@object;
+        }
+
+        class WlDisplayListener : WlDisplay.IListener
+        {
+            WaylandClientConnection connection;
+
+            public WlDisplayListener(WaylandClientConnection connection)
+            {
+                this.connection = connection;
+            }
+
+            public void Error(WlDisplay wlDisplay, WaylandProxy objectId, uint code, string message)
+            {
+                throw new WaylandProtocolException(objectId, code, message);
+            }
+
+            public void DeleteId(WlDisplay wlDisplay, uint id)
+            {
+                connection.objectMap.DeallocateId(id);
+            }
+        }
+
     }
 }

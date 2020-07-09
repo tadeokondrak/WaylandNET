@@ -57,6 +57,10 @@ namespace Wayland
             }
         }
 
+        public void DeallocateId(uint id)
+        {
+        }
+
         public T this[uint id]
         {
             get {

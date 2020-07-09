@@ -8,18 +8,21 @@ namespace Wayland
     public sealed class WaylandWireConnection : IDisposable
     {
         Socket socket;
-        Stream networkStream;
-        Stream bufferedStream;
+        NetworkStream networkStream;
         BinaryWriter binaryWriter;
         BinaryReader binaryReader;
 
         public WaylandWireConnection(Socket socket)
         {
             this.socket = socket;
-            networkStream = new NetworkStream(this.socket);
-            bufferedStream = new BufferedStream(networkStream);
-            binaryReader = new BinaryReader(bufferedStream);
-            binaryWriter = new BinaryWriter(bufferedStream);
+            networkStream = new NetworkStream(socket);
+            binaryReader = new BinaryReader(networkStream);
+            binaryWriter = new BinaryWriter(networkStream);
+        }
+
+        ~WaylandWireConnection()
+        {
+            Dispose(false);
         }
 
         public void Dispose()
@@ -34,15 +37,26 @@ namespace Wayland
             {
                 binaryReader.Dispose();
                 binaryWriter.Dispose();
-                bufferedStream.Dispose();
                 networkStream.Dispose();
                 socket.Dispose();
             }
         }
 
+        public WaylandMessageHeader ReadMessageHeader()
+        {
+            uint id = ReadUInt32();
+            uint header = ReadUInt32();
+            uint length = (header & 0xffff0000) >> 16;
+            ushort opcode = (ushort)(header & 0x0000ffff);
+            return new WaylandMessageHeader
+            {
+                id = id,
+                opcode = opcode,
+            };
+        }
+
         public void Flush()
         {
-            bufferedStream.Flush();
         }
 
         public void Write(int i)
@@ -71,7 +85,7 @@ namespace Wayland
                 byte[] bytes = Encoding.UTF8.GetBytes(s);
                 byte[] withNull = new byte[bytes.Length + 1];
                 bytes.CopyTo(withNull, 0);
-                Write(bytes);
+                Write(withNull);
             }
         }
 
@@ -83,10 +97,10 @@ namespace Wayland
             }
             else
             {
-                int paddedLength = a.Length + 3 / 4 * 4;
+                int paddedLength = (a.Length + 3) / 4 * 4;
                 binaryWriter.Write((uint)a.Length);
                 binaryWriter.Write(a);
-                for (int i = 0; i <= paddedLength - a.Length; i++)
+                for (int i = 0; i < paddedLength - a.Length; i++)
                     binaryWriter.Write((byte)0);
             }
         }
@@ -123,7 +137,7 @@ namespace Wayland
         public byte[] ReadBytes()
         {
             int length = (int)binaryReader.ReadUInt32();
-            int paddedLength = length + 3 / 4 * 4;
+            int paddedLength = (length + 3) / 4 * 4;
             byte[] bytes = binaryReader.ReadBytes(length);
             binaryReader.ReadBytes(paddedLength - length);
             return bytes;

@@ -6,6 +6,13 @@ namespace Wayland
     {
         public abstract void Marshal(uint id, ushort opcode, params object[] arguments);
         public abstract uint AllocateId();
+        public abstract WaylandObject GetObject(uint id);
+        public abstract void SetObject(uint id, WaylandObject @object);
+
+        ~WaylandConnection()
+        {
+            Dispose(false);
+        }
 
         public void Dispose()
         {
@@ -13,6 +20,8 @@ namespace Wayland
             GC.SuppressFinalize(this);
         }
 
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing)
+        {
+        }
     }
 }
