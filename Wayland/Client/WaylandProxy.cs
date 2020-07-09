@@ -10,11 +10,6 @@ namespace Wayland.Client
             ClientConnection = connection;
         }
 
-        public override void Marshal(ushort opcode, object[] arguments)
-        {
-            Connection.Marshal(Id, opcode, arguments);
-        }
-
         public abstract override void Handle(ushort opcode, object[] arguments);
         public abstract override WaylandType[] Arguments(ushort opcode);
     }

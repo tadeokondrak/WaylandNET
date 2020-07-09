@@ -160,6 +160,11 @@ namespace Wayland.Client
             return objectMap.AllocateClientId();
         }
 
+        public override void DeallocateId(uint id)
+        {
+            objectMap.DeallocateId(id);
+        }
+
         public override WaylandObject this[uint id]
         {
             get => objectMap[id];
@@ -182,7 +187,7 @@ namespace Wayland.Client
 
             public void DeleteId(WlDisplay wlDisplay, uint id)
             {
-                connection.objectMap.DeallocateId(id);
+                connection.DeallocateId(id);
             }
         }
 

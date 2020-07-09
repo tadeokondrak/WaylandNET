@@ -228,6 +228,8 @@ namespace WaylandScanner
                                 using (gen.Block("else"))
                                     gen.AppendLine(
                                         "Console.WriteLine($\"Warning: no listener on {this}\");");
+                                if (@event.Type == "destructor")
+                                    gen.AppendLine($"Die();");
                                 gen.AppendLine("break;");
                             }
 
@@ -347,6 +349,8 @@ namespace WaylandScanner
                     marshalArgs.Add(CamelCase(argument.Name));
                 }
                 gen.AppendLine($"Marshal({String.Join(", ", marshalArgs)});");
+                if (request.Type == "destructor")
+                    gen.AppendLine($"Die();");
                 if (returnArgument != null)
                 {
                     if (returnArgument.Interface != null)

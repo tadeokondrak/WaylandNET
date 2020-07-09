@@ -6,6 +6,7 @@ namespace Wayland
     {
         public abstract void Marshal(uint id, ushort opcode, params object[] arguments);
         public abstract uint AllocateId();
+        public abstract void DeallocateId(uint id);
         public abstract WaylandObject this[uint id] { get; set; }
 
         public void Dispose()
