@@ -163,14 +163,10 @@ namespace Wayland.Client
             return objectMap.AllocateClientId();
         }
 
-        public override WaylandObject GetObject(uint id)
+        public override WaylandObject this[uint id]
         {
-            return objectMap[id];
-        }
-
-        public override void SetObject(uint id, WaylandObject @object)
-        {
-            objectMap[id] = (WaylandProxy)@object;
+            get => objectMap[id];
+            set => objectMap[id] = (WaylandProxy)value;
         }
 
         class WlDisplayListener : WlDisplay.IListener

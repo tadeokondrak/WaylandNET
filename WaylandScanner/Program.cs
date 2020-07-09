@@ -351,19 +351,19 @@ namespace WaylandScanner
                 {
                     if (returnArgument.Interface != null)
                     {
-                        gen.AppendLine($"Connection.SetObject({CamelCase(returnArgument.Name)}, "
+                        gen.AppendLine($"Connection[{CamelCase(returnArgument.Name)}] = "
                             + $"new {returnType}({CamelCase(returnArgument.Name)}, Version, "
-                            + $"ClientConnection));");
+                            + $"ClientConnection);");
                     }
                     else
                     {
-                        gen.AppendLine($"Connection.SetObject({CamelCase(returnArgument.Name)}, "
+                        gen.AppendLine($"Connection[{CamelCase(returnArgument.Name)}] = "
                             + $"(WaylandProxy)Activator.CreateInstance(typeof({returnType}), "
                             + $"{CamelCase(returnArgument.Name)}, version, "
-                            + $"ClientConnection));");
+                            + $"ClientConnection);");
                     }
-                    gen.AppendLine($"return ({returnType})Connection.GetObject"
-                        + $"({CamelCase(returnArgument.Name)});");
+                    gen.AppendLine($"return ({returnType})Connection"
+                        + $"[{CamelCase(returnArgument.Name)}];");
                 }
             }
         }
