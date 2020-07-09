@@ -214,7 +214,7 @@ namespace WaylandScanner
                                 foreach (var argument in @event.Arguments)
                                 {
                                     gen.AppendLine($"var {CamelCase(argument.Name)} = "
-                                        + $"({TypeForArgument(argument)})arguments[{i}];");;
+                                        + $"({TypeForArgument(argument)})arguments[{i}];");
                                     i++;
                                 }
                                 var args = new List<string>()
@@ -226,7 +226,8 @@ namespace WaylandScanner
                                 using (gen.Block("if (Listener != null)"))
                                     gen.AppendLine($"Listener.{name}({String.Join(", ", args)});");
                                 using (gen.Block("else"))
-                                    gen.AppendLine("Console.WriteLine($\"Warning: no listener on {this}\");");
+                                    gen.AppendLine(
+                                        "Console.WriteLine($\"Warning: no listener on {this}\");");
                                 gen.AppendLine("break;");
                             }
 
