@@ -1,6 +1,6 @@
 using System;
 
-namespace Wayland.Client
+namespace WaylandNET.Client
 {
     class WaylandProtocolException : Exception
     {

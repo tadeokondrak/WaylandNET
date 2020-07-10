@@ -24,9 +24,9 @@
 /// SOFTWARE.
 #pragma warning disable 0162
 using System;
-using Wayland;
-using Wayland.Client;
-namespace Wayland.Client.Protocol
+using WaylandNET;
+using WaylandNET.Client;
+namespace WaylandNET.Client.Protocol
 {
     /// wl_display version 1
     /// <summary>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Wayland
+namespace WaylandNET
 {
     public abstract class WaylandObjectMap
     {

@@ -20,8 +20,8 @@
 /// DEALINGS IN THE SOFTWARE.
 #pragma warning disable 0162
 using System;
-using Wayland;
-using Wayland.Client;
+using WaylandNET;
+using WaylandNET.Client;
 /// <summary>
 /// Protocol to describe output regions
 /// <para>
@@ -54,7 +54,7 @@ using Wayland.Client;
 /// reset.
 /// </para>
 /// </summary>
-namespace Wayland.Client.Protocol
+namespace WaylandNET.Client.Protocol
 {
     /// zxdg_output_manager_v1 version 3
     /// <summary>

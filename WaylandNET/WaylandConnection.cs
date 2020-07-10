@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 
-namespace Wayland
+namespace WaylandNET
 {
     public abstract class WaylandConnection : IDisposable
     {

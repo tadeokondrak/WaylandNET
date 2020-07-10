@@ -6,7 +6,7 @@ using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace WaylandScanner
+namespace WaylandNETScanner
 {
     class Program
     {
@@ -415,10 +415,10 @@ namespace WaylandScanner
             GenerateCopyrightComment(gen, protocol.Copyright);
             gen.AppendLine("#pragma warning disable 0162");
             gen.AppendLine("using System;");
-            gen.AppendLine("using Wayland;");
-            gen.AppendLine("using Wayland.Client;");
+            gen.AppendLine("using WaylandNET;");
+            gen.AppendLine("using WaylandNET.Client;");
             GenerateDescriptionComment(gen, protocol.Description);
-            using (gen.Block("namespace Wayland.Client.Protocol"))
+            using (gen.Block("namespace WaylandNET.Client.Protocol"))
             {
                 foreach (var @interface in protocol.Interfaces)
                     GenerateInterface(gen, @interface);

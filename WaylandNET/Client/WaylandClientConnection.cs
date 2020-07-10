@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using Wayland.Client.Protocol;
+using WaylandNET.Client.Protocol;
 
-namespace Wayland.Client
+namespace WaylandNET.Client
 {
     public sealed class WaylandClientConnection : WaylandConnection, IDisposable
     {

@@ -1,4 +1,4 @@
-namespace Wayland.Client
+namespace WaylandNET.Client
 {
     public abstract class WaylandClientObject : WaylandObject
     {

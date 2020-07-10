@@ -1,4 +1,4 @@
-namespace Wayland
+namespace WaylandNET
 {
     public abstract class WaylandObject
     {

@@ -3,7 +3,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 
-namespace WaylandScanner
+namespace WaylandNETScanner
 {
     [XmlRoot("protocol")]
     public class Protocol

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Wayland.Client
+namespace WaylandNET.Client
 {
     public class WaylandClientObjectMap : WaylandObjectMap
     {
