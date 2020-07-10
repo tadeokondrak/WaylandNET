@@ -47,8 +47,10 @@ namespace WaylandScanner
             return Recase(input, false);
         }
 
-        static string TypeForArgument(Argument argument)
+        static string TypeForArgument(Argument argument, bool raw)
         {
+            if (argument.Enum != null && !raw)
+                return String.Join('.', argument.Enum.Split('.').Select(PascalCase));
             switch (argument.Type)
             {
                 case "int":
@@ -186,7 +188,7 @@ namespace WaylandScanner
                         $"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}",
                     };
                     foreach (var argument in @event.Arguments)
-                        args.Add($"{TypeForArgument(argument)} {CamelCase(argument.Name)}");
+                        args.Add($"{TypeForArgument(argument, false)} {CamelCase(argument.Name)}");
                     gen.AppendLine($"void {name}({String.Join(", ", args)});");
                 }
             }
@@ -213,8 +215,17 @@ namespace WaylandScanner
                                 int i = 0;
                                 foreach (var argument in @event.Arguments)
                                 {
-                                    gen.AppendLine($"var {CamelCase(argument.Name)} = "
-                                        + $"({TypeForArgument(argument)})arguments[{i}];");
+                                    if (argument.Enum != null)
+                                    {
+                                        gen.AppendLine($"var {CamelCase(argument.Name)} = "
+                                            + $"({TypeForArgument(argument, false)})"
+                                            + $"({TypeForArgument(argument, true)})arguments[{i}];");
+                                    }
+                                    else
+                                    {
+                                        gen.AppendLine($"var {CamelCase(argument.Name)} = "
+                                            + $"({TypeForArgument(argument, true)})arguments[{i}];");
+                                    }
                                     i++;
                                 }
                                 var args = new List<string>()
@@ -272,7 +283,7 @@ namespace WaylandScanner
             GenerateDescriptionComment(gen, @enum.Description);
             if (@enum.Bitfield)
                 gen.AppendLine("[Flags]");
-            using (gen.Block($"public enum {PascalCase(@enum.Name)}Enum : int"))
+            using (gen.Block($"public enum {PascalCase(@enum.Name)} : int"))
             {
                 foreach (var entry in @enum.Entries)
                 {
@@ -324,7 +335,7 @@ namespace WaylandScanner
                 }
                 else
                 {
-                    args.Add($"{TypeForArgument(argument)} {CamelCase(argument.Name)}");
+                    args.Add($"{TypeForArgument(argument, false)} {CamelCase(argument.Name)}");
                 }
             }
             GenerateDescriptionComment(gen, request.Description);
@@ -348,6 +359,9 @@ namespace WaylandScanner
                     }
                     if (argument.Type == "object")
                         marshalArgs.Add($"{CamelCase(argument.Name)}.Id");
+                    else if (argument.Enum != null)
+                        marshalArgs.Add(
+                            $"({TypeForArgument(argument, true)}){CamelCase(argument.Name)}");
                     else
                         marshalArgs.Add(CamelCase(argument.Name));
                 }
