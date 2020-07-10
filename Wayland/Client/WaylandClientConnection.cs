@@ -43,6 +43,15 @@ namespace Wayland.Client
             ObjectMap[id] = Display;
         }
 
+        public void Roundtrip()
+        {
+            var listener = new WlCallbackListener();
+            var callback = Display.Sync();
+            callback.Listener = listener;
+            while (!listener.IsDone)
+                Read();
+        }
+
         class WlDisplayListener : WlDisplay.IListener
         {
             WaylandClientConnection connection;
@@ -63,5 +72,14 @@ namespace Wayland.Client
             }
         }
 
+        class WlCallbackListener : WlCallback.IListener
+        {
+            public bool IsDone { get; private set; }
+
+            public void Done(WlCallback wlCallback, uint callbackData)
+            {
+                IsDone = true;
+            }
+        }
     }
 }
