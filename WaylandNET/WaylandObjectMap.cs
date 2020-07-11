@@ -31,7 +31,7 @@ namespace WaylandNET
                 else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
                     return serverObjects[(int)(id - ServerRangeBegin)];
                 else
-                    throw new IndexOutOfRangeException();
+                    return null;
             }
             set {
                 if (id >= ClientRangeBegin && id <= ClientRangeEnd)
