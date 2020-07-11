@@ -1,5 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageId>WaylandNET</PackageId>
+    <Authors>Tadeo Kondrak</Authors>
+    <Version>0.1.0</Version>
+    <Description>Wayland implementation in C# (not bindings)</Description>
+    <Copyright>Copyright 2020 Tadeo Kondrak</Copyright>
+    <PackageLicenseExpression>ISC</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/tadeokondrak/WaylandNET.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>wayland</PackageTags>
   </PropertyGroup>
 </Project>
