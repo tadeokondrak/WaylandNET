@@ -2,9 +2,7 @@
 <!--
     Changes:
 
-    - Renamed wl_shell_surface.resize to wl_shell_surface.resize_enum 
-      because it conflicts with a method of the same name
-
+    - Renamed enum wl_shm.format to wl_shm.format_enum
     - Explicitly specified that wl_callback.done is a destructor event
 -->
 <protocol name="wayland">
@@ -247,7 +245,7 @@
       <arg name="width" type="int" summary="buffer width, in pixels"/>
       <arg name="height" type="int" summary="buffer height, in pixels"/>
       <arg name="stride" type="int" summary="number of bytes from the beginning of one row to the beginning of the next row"/>
-      <arg name="format" type="uint" enum="wl_shm.format" summary="buffer pixel format"/>
+      <arg name="format" type="uint" enum="wl_shm.format_enum" summary="buffer pixel format"/>
     </request>
 
     <request name="destroy" type="destructor">
@@ -293,7 +291,7 @@
       <entry name="invalid_fd" value="2" summary="mmapping the file descriptor failed"/>
     </enum>
 
-    <enum name="format">
+    <enum name="format_enum">
       <description summary="pixel formats">
 	This describes the memory layout of an individual pixel.
 
@@ -428,7 +426,7 @@
 	can be used for buffers. Known formats include
 	argb8888 and xrgb8888.
       </description>
-      <arg name="format" type="uint" enum="format" summary="buffer pixel format"/>
+      <arg name="format" type="uint" enum="format_enum" summary="buffer pixel format"/>
     </event>
   </interface>
 
@@ -1096,7 +1094,7 @@
       <arg name="serial" type="uint" summary="serial number of the implicit grab on the pointer"/>
     </request>
 
-    <enum name="resize_enum" bitfield="true">
+    <enum name="resize" bitfield="true">
       <description summary="edge values for resizing">
 	These values are used to indicate which edge of a surface
 	is being dragged in a resize operation. The server may
@@ -1124,7 +1122,7 @@
       </description>
       <arg name="seat" type="object" interface="wl_seat" summary="seat whose pointer is used"/>
       <arg name="serial" type="uint" summary="serial number of the implicit grab on the pointer"/>
-      <arg name="edges" type="uint" enum="resize_enum" summary="which edge or corner is being dragged"/>
+      <arg name="edges" type="uint" enum="resize" summary="which edge or corner is being dragged"/>
     </request>
 
     <request name="set_toplevel">
@@ -1321,7 +1319,7 @@
 	The width and height arguments specify the size of the window
 	in surface-local coordinates.
       </description>
-      <arg name="edges" type="uint" enum="resize_enum" summary="how the surface was resized"/>
+      <arg name="edges" type="uint" enum="resize" summary="how the surface was resized"/>
       <arg name="width" type="int" summary="new width of the surface"/>
       <arg name="height" type="int" summary="new height of the surface"/>
     </event>

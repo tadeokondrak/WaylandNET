@@ -47,10 +47,18 @@ namespace WaylandNETScanner
             return Recase(input, false);
         }
 
-        static string TypeForArgument(Argument argument, bool raw)
+        static string TypeForArgument(Interface @interface, Argument argument, bool raw)
         {
             if (argument.Enum != null && !raw)
-                return String.Join('.', argument.Enum.Split('.').Select(PascalCase));
+            {
+                var split = argument.Enum.Split('.');
+                if (EnumHasConflictingMethod(@interface, split[split.Length - 1]))
+                {
+                    if (split.Length == 1 || split[0] == @interface.Name)
+                        split[split.Length - 1] += "Enum";
+                }
+                return String.Join('.', split.Select(PascalCase));
+            }
             switch (argument.Type)
             {
                 case "int":
@@ -101,6 +109,14 @@ namespace WaylandNETScanner
                 default:
                     throw new ArgumentException($"unknown wayland type {argument.Type}");
             }
+        }
+
+        static bool EnumHasConflictingMethod(Interface @interface, string enumName)
+        {
+            return @interface.Requests
+                .Concat(@interface.Events)
+                .Where(message => message.Name == enumName)
+                .FirstOrDefault() != null;
         }
 
         static void GenerateDocComment(CodeGenerator gen, string text)
@@ -173,30 +189,32 @@ namespace WaylandNETScanner
             }
         }
 
-        static void GenerateInterfaceListenerInterface(CodeGenerator gen, Interface @interface)
+        static void GenerateInterfaceEventDelegates(CodeGenerator gen, Interface @interface)
         {
-            using (gen.Block($"public interface IListener"))
+            foreach (var @event in @interface.Events)
             {
-                foreach (var @event in @interface.Events)
+                var name = PascalCase(@event.Name);
+                GenerateDescriptionComment(gen, @event.Description);
+                foreach (var argument in @event.Arguments)
+                    GenerateArgumentComment(gen, argument, false);
+                var args = new List<string>()
                 {
-                    var name = PascalCase(@event.Name);
-                    GenerateDescriptionComment(gen, @event.Description);
-                    foreach (var argument in @event.Arguments)
-                        GenerateArgumentComment(gen, argument, false);
-                    var args = new List<string>()
-                    {
-                        $"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}",
-                    };
-                    foreach (var argument in @event.Arguments)
-                        args.Add($"{TypeForArgument(argument, false)} {CamelCase(argument.Name)}");
-                    gen.AppendLine($"void {name}({String.Join(", ", args)});");
-                }
+                    $"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}",
+                };
+                foreach (var argument in @event.Arguments)
+                    args.Add($"{TypeForArgument(@interface, argument, false)} "+
+                        $"{CamelCase(argument.Name)}");
+                gen.AppendLine($"public delegate void {name}Handler({String.Join(", ", args)});");
             }
         }
 
-        static void GenerateInterfaceListenerProperty(CodeGenerator gen, Interface @interface)
+        static void GenerateInterfaceEvents(CodeGenerator gen, Interface @interface)
         {
-            gen.AppendLine("public IListener Listener { get; set; }");
+            foreach (var @event in @interface.Events)
+            {
+                var name = PascalCase(@event.Name);
+                gen.AppendLine($"public event {name}Handler {name};");
+            }
         }
 
         static void GenerateInterfaceHandleMethod(CodeGenerator gen, Interface @interface)
@@ -218,13 +236,15 @@ namespace WaylandNETScanner
                                     if (argument.Enum != null)
                                     {
                                         gen.AppendLine($"var {CamelCase(argument.Name)} = "
-                                            + $"({TypeForArgument(argument, false)})"
-                                            + $"({TypeForArgument(argument, true)})arguments[{i}];");
+                                            + $"({TypeForArgument(@interface, argument, false)})"
+                                            + $"({TypeForArgument(@interface, argument, true)})"
+                                            + $"arguments[{i}];");
                                     }
                                     else
                                     {
                                         gen.AppendLine($"var {CamelCase(argument.Name)} = "
-                                            + $"({TypeForArgument(argument, true)})arguments[{i}];");
+                                            + $"({TypeForArgument(@interface, argument, true)})"
+                                            + $"arguments[{i}];");
                                     }
                                     i++;
                                 }
@@ -234,11 +254,8 @@ namespace WaylandNETScanner
                                 };
                                 foreach (var argument in @event.Arguments)
                                     args.Add($"{CamelCase(argument.Name)}");
-                                using (gen.Block("if (Listener != null)"))
-                                    gen.AppendLine($"Listener.{name}({String.Join(", ", args)});");
-                                using (gen.Block("else"))
-                                    gen.AppendLine(
-                                        "Console.WriteLine($\"Warning: no listener on {this}\");");
+                                gen.AppendLine($"{PascalCase(@event.Name)}?."
+                                    + $"Invoke({String.Join(", ", args)});");
                                 if (@event.Type == "destructor")
                                     gen.AppendLine($"Die();");
                                 gen.AppendLine("break;");
@@ -278,27 +295,30 @@ namespace WaylandNETScanner
             }
         }
 
-        static void GenerateEnum(CodeGenerator gen, Enum @enum)
+        static void GenerateEnum(CodeGenerator gen, Interface @interface, Enum @enum)
         {
             GenerateDescriptionComment(gen, @enum.Description);
             if (@enum.Bitfield)
                 gen.AppendLine("[Flags]");
-            using (gen.Block($"public enum {PascalCase(@enum.Name)} : int"))
+            var name = PascalCase(@enum.Name);
+            if (EnumHasConflictingMethod(@interface, @enum.Name))
+                name += "Enum";
+            using (gen.Block($"public enum {name} : int"))
             {
                 foreach (var entry in @enum.Entries)
                 {
                     var val = entry.Value.StartsWith("0x")
                         ? Convert.ToInt32(entry.Value.Substring(2), 16)
                         : Convert.ToInt32(entry.Value);
-                    var name = Char.IsDigit(entry.Name[0])
-                        ? $"_{PascalCase(entry.Name)}"
-                        : $"{PascalCase(entry.Name)}";
-                    gen.AppendLine($"{name} = {val},");
+                    var entryName = PascalCase(entry.Name);
+                    if (Char.IsDigit(entry.Name[0]))
+                        entryName = $"_{entryName}";
+                    gen.AppendLine($"{entryName} = {val},");
                 }
             }
         }
 
-        static void GenerateRequestMethod(CodeGenerator gen, Message request)
+        static void GenerateRequestMethod(CodeGenerator gen, Interface @interface, Message request)
         {
             Argument returnArgument = null;
             foreach (var argument in request.Arguments)
@@ -335,7 +355,8 @@ namespace WaylandNETScanner
                 }
                 else
                 {
-                    args.Add($"{TypeForArgument(argument, false)} {CamelCase(argument.Name)}");
+                    args.Add($"{TypeForArgument(@interface, argument, false)} "
+                        + $"{CamelCase(argument.Name)}");
                 }
             }
             GenerateDescriptionComment(gen, request.Description);
@@ -345,7 +366,8 @@ namespace WaylandNETScanner
                 + $"({String.Join(", ", args)}){genericsWhere}"))
             {
                 if (returnArgument != null)
-                    gen.AppendLine($"uint {CamelCase(returnArgument.Name)} = Connection.AllocateId();");
+                    gen.AppendLine($"uint {CamelCase(returnArgument.Name)} = "
+                        + $"Connection.AllocateId();");
                 var marshalArgs = new List<string>()
                 {
                     $"(ushort)RequestOpcode.{PascalCase(request.Name)}",
@@ -361,7 +383,8 @@ namespace WaylandNETScanner
                         marshalArgs.Add($"{CamelCase(argument.Name)}.Id");
                     else if (argument.Enum != null)
                         marshalArgs.Add(
-                            $"({TypeForArgument(argument, true)}){CamelCase(argument.Name)}");
+                            $"({TypeForArgument(@interface, argument, true)})"
+                            + $"{CamelCase(argument.Name)}");
                     else
                         marshalArgs.Add(CamelCase(argument.Name));
                 }
@@ -399,14 +422,14 @@ namespace WaylandNETScanner
                 GenerateInterfaceConstructor(gen, @interface);
                 GenerateInterfaceRequestOpcode(gen, @interface);
                 GenerateInterfaceEventOpcode(gen, @interface);
-                GenerateInterfaceListenerInterface(gen, @interface);
-                GenerateInterfaceListenerProperty(gen, @interface);
+                GenerateInterfaceEventDelegates(gen, @interface);
+                GenerateInterfaceEvents(gen, @interface);
                 GenerateInterfaceHandleMethod(gen, @interface);
                 GenerateInterfaceArgumentsMethod(gen, @interface);
                 foreach (var @enum in @interface.Enums)
-                    GenerateEnum(gen, @enum);
+                    GenerateEnum(gen, @interface, @enum);
                 foreach (var request in @interface.Requests)
-                    GenerateRequestMethod(gen, request);
+                    GenerateRequestMethod(gen, @interface, request);
             }
         }
 

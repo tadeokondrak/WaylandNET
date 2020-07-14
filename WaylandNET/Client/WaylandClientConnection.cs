@@ -39,47 +39,27 @@ namespace WaylandNET.Client
         {
             uint id = ObjectMap.AllocateId();
             Display = new WlDisplay(id, 1, this);
-            Display.Listener = new WlDisplayListener(this);
+            Display.Error += (display, objectId, code, message) =>
+            {
+                throw new WaylandProtocolException(objectId, code, message);
+            };
+            Display.DeleteId += (display, id) =>
+            {
+                this.DeallocateId(id);
+            };
             ObjectMap[id] = Display;
         }
 
         public void Roundtrip()
         {
-            var listener = new WlCallbackListener();
             var callback = Display.Sync();
-            callback.Listener = listener;
-            while (!listener.IsDone)
+            var isDone = false;
+            callback.Done += (callback, data) =>
+            {
+                isDone = true;
+            };
+            while (!isDone)
                 Read();
-        }
-
-        class WlDisplayListener : WlDisplay.IListener
-        {
-            WaylandClientConnection connection;
-
-            public WlDisplayListener(WaylandClientConnection connection)
-            {
-                this.connection = connection;
-            }
-
-            public void Error(WlDisplay wlDisplay, WaylandClientObject objectId, uint code, string message)
-            {
-                throw new WaylandProtocolException(objectId, code, message);
-            }
-
-            public void DeleteId(WlDisplay wlDisplay, uint id)
-            {
-                connection.DeallocateId(id);
-            }
-        }
-
-        class WlCallbackListener : WlCallback.IListener
-        {
-            public bool IsDone { get; private set; }
-
-            public void Done(WlCallback wlCallback, uint callbackData)
-            {
-                IsDone = true;
-            }
         }
     }
 }
