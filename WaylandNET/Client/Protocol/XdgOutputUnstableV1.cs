@@ -76,10 +76,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -156,128 +152,129 @@ namespace WaylandNET.Client.Protocol
             Name,
             Description,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// position of the output within the global compositor space
-            /// <para>
-            /// The position event describes the location of the wl_output within
-            /// the global compositor space.
-            /// 
-            /// The logical_position event is sent after creating an xdg_output
-            /// (see xdg_output_manager.get_xdg_output) and whenever the location
-            /// of the output changes within the global compositor space.
-            /// </para>
-            /// </summary>
-            /// <param name="x">x position within the global compositor space</param>
-            /// <param name="y">y position within the global compositor space</param>
-            void LogicalPosition(ZxdgOutputV1 zxdgOutputV1, int x, int y);
-            /// <summary>
-            /// size of the output in the global compositor space
-            /// <para>
-            /// The logical_size event describes the size of the output in the
-            /// global compositor space.
-            /// 
-            /// For example, a surface without any buffer scale, transformation
-            /// nor rotation set, with the size matching the logical_size will
-            /// have the same size as the corresponding output when displayed.
-            /// 
-            /// Most regular Wayland clients should not pay attention to the
-            /// logical size and would rather rely on xdg_shell interfaces.
-            /// 
-            /// Some clients such as Xwayland, however, need this to configure
-            /// their surfaces in the global compositor space as the compositor
-            /// may apply a different scale from what is advertised by the output
-            /// scaling property (to achieve fractional scaling, for example).
-            /// 
-            /// For example, for a wl_output mode 3840×2160 and a scale factor 2:
-            /// 
-            /// - A compositor not scaling the surface buffers will advertise a
-            /// logical size of 3840×2160,
-            /// 
-            /// - A compositor automatically scaling the surface buffers will
-            /// advertise a logical size of 1920×1080,
-            /// 
-            /// - A compositor using a fractional scale of 1.5 will advertise a
-            /// logical size to 2560×1620.
-            /// 
-            /// For example, for a wl_output mode 1920×1080 and a 90 degree rotation,
-            /// the compositor will advertise a logical size of 1080x1920.
-            /// 
-            /// The logical_size event is sent after creating an xdg_output
-            /// (see xdg_output_manager.get_xdg_output) and whenever the logical
-            /// size of the output changes, either as a result of a change in the
-            /// applied scale or because of a change in the corresponding output
-            /// mode(see wl_output.mode) or transform (see wl_output.transform).
-            /// </para>
-            /// </summary>
-            /// <param name="width">width in global compositor space</param>
-            /// <param name="height">height in global compositor space</param>
-            void LogicalSize(ZxdgOutputV1 zxdgOutputV1, int width, int height);
-            /// <summary>
-            /// all information about the output have been sent
-            /// <para>
-            /// This event is sent after all other properties of an xdg_output
-            /// have been sent.
-            /// 
-            /// This allows changes to the xdg_output properties to be seen as
-            /// atomic, even if they happen via multiple events.
-            /// 
-            /// For objects version 3 onwards, this event is deprecated. Compositors
-            /// are not required to send it anymore and must send wl_output.done
-            /// instead.
-            /// </para>
-            /// </summary>
-            void Done(ZxdgOutputV1 zxdgOutputV1);
-            /// <summary>
-            /// name of this output
-            /// <para>
-            /// Many compositors will assign names to their outputs, show them to the
-            /// user, allow them to be configured by name, etc. The client may wish to
-            /// know this name as well to offer the user similar behaviors.
-            /// 
-            /// The naming convention is compositor defined, but limited to
-            /// alphanumeric characters and dashes (-). Each name is unique among all
-            /// wl_output globals, but if a wl_output global is destroyed the same name
-            /// may be reused later. The names will also remain consistent across
-            /// sessions with the same hardware and software configuration.
-            /// 
-            /// Examples of names include 'HDMI-A-1', 'WL-1', 'X11-1', etc. However, do
-            /// not assume that the name is a reflection of an underlying DRM
-            /// connector, X11 connection, etc.
-            /// 
-            /// The name event is sent after creating an xdg_output (see
-            /// xdg_output_manager.get_xdg_output). This event is only sent once per
-            /// xdg_output, and the name does not change over the lifetime of the
-            /// wl_output global.
-            /// </para>
-            /// </summary>
-            /// <param name="name">output name</param>
-            void Name(ZxdgOutputV1 zxdgOutputV1, string name);
-            /// <summary>
-            /// human-readable description of this output
-            /// <para>
-            /// Many compositors can produce human-readable descriptions of their
-            /// outputs.  The client may wish to know this description as well, to
-            /// communicate the user for various purposes.
-            /// 
-            /// The description is a UTF-8 string with no convention defined for its
-            /// contents. Examples might include 'Foocorp 11" Display' or 'Virtual X11
-            /// output via :1'.
-            /// 
-            /// The description event is sent after creating an xdg_output (see
-            /// xdg_output_manager.get_xdg_output) and whenever the description
-            /// changes. The description is optional, and may not be sent at all.
-            /// 
-            /// For objects of version 2 and lower, this event is only sent once per
-            /// xdg_output, and the description does not change over the lifetime of
-            /// the wl_output global.
-            /// </para>
-            /// </summary>
-            /// <param name="description">output description</param>
-            void Description(ZxdgOutputV1 zxdgOutputV1, string description);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// position of the output within the global compositor space
+        /// <para>
+        /// The position event describes the location of the wl_output within
+        /// the global compositor space.
+        /// 
+        /// The logical_position event is sent after creating an xdg_output
+        /// (see xdg_output_manager.get_xdg_output) and whenever the location
+        /// of the output changes within the global compositor space.
+        /// </para>
+        /// </summary>
+        /// <param name="x">x position within the global compositor space</param>
+        /// <param name="y">y position within the global compositor space</param>
+        public delegate void LogicalPositionHandler(ZxdgOutputV1 zxdgOutputV1, int x, int y);
+        /// <summary>
+        /// size of the output in the global compositor space
+        /// <para>
+        /// The logical_size event describes the size of the output in the
+        /// global compositor space.
+        /// 
+        /// For example, a surface without any buffer scale, transformation
+        /// nor rotation set, with the size matching the logical_size will
+        /// have the same size as the corresponding output when displayed.
+        /// 
+        /// Most regular Wayland clients should not pay attention to the
+        /// logical size and would rather rely on xdg_shell interfaces.
+        /// 
+        /// Some clients such as Xwayland, however, need this to configure
+        /// their surfaces in the global compositor space as the compositor
+        /// may apply a different scale from what is advertised by the output
+        /// scaling property (to achieve fractional scaling, for example).
+        /// 
+        /// For example, for a wl_output mode 3840×2160 and a scale factor 2:
+        /// 
+        /// - A compositor not scaling the surface buffers will advertise a
+        /// logical size of 3840×2160,
+        /// 
+        /// - A compositor automatically scaling the surface buffers will
+        /// advertise a logical size of 1920×1080,
+        /// 
+        /// - A compositor using a fractional scale of 1.5 will advertise a
+        /// logical size to 2560×1620.
+        /// 
+        /// For example, for a wl_output mode 1920×1080 and a 90 degree rotation,
+        /// the compositor will advertise a logical size of 1080x1920.
+        /// 
+        /// The logical_size event is sent after creating an xdg_output
+        /// (see xdg_output_manager.get_xdg_output) and whenever the logical
+        /// size of the output changes, either as a result of a change in the
+        /// applied scale or because of a change in the corresponding output
+        /// mode(see wl_output.mode) or transform (see wl_output.transform).
+        /// </para>
+        /// </summary>
+        /// <param name="width">width in global compositor space</param>
+        /// <param name="height">height in global compositor space</param>
+        public delegate void LogicalSizeHandler(ZxdgOutputV1 zxdgOutputV1, int width, int height);
+        /// <summary>
+        /// all information about the output have been sent
+        /// <para>
+        /// This event is sent after all other properties of an xdg_output
+        /// have been sent.
+        /// 
+        /// This allows changes to the xdg_output properties to be seen as
+        /// atomic, even if they happen via multiple events.
+        /// 
+        /// For objects version 3 onwards, this event is deprecated. Compositors
+        /// are not required to send it anymore and must send wl_output.done
+        /// instead.
+        /// </para>
+        /// </summary>
+        public delegate void DoneHandler(ZxdgOutputV1 zxdgOutputV1);
+        /// <summary>
+        /// name of this output
+        /// <para>
+        /// Many compositors will assign names to their outputs, show them to the
+        /// user, allow them to be configured by name, etc. The client may wish to
+        /// know this name as well to offer the user similar behaviors.
+        /// 
+        /// The naming convention is compositor defined, but limited to
+        /// alphanumeric characters and dashes (-). Each name is unique among all
+        /// wl_output globals, but if a wl_output global is destroyed the same name
+        /// may be reused later. The names will also remain consistent across
+        /// sessions with the same hardware and software configuration.
+        /// 
+        /// Examples of names include 'HDMI-A-1', 'WL-1', 'X11-1', etc. However, do
+        /// not assume that the name is a reflection of an underlying DRM
+        /// connector, X11 connection, etc.
+        /// 
+        /// The name event is sent after creating an xdg_output (see
+        /// xdg_output_manager.get_xdg_output). This event is only sent once per
+        /// xdg_output, and the name does not change over the lifetime of the
+        /// wl_output global.
+        /// </para>
+        /// </summary>
+        /// <param name="name">output name</param>
+        public delegate void NameHandler(ZxdgOutputV1 zxdgOutputV1, string name);
+        /// <summary>
+        /// human-readable description of this output
+        /// <para>
+        /// Many compositors can produce human-readable descriptions of their
+        /// outputs.  The client may wish to know this description as well, to
+        /// communicate the user for various purposes.
+        /// 
+        /// The description is a UTF-8 string with no convention defined for its
+        /// contents. Examples might include 'Foocorp 11" Display' or 'Virtual X11
+        /// output via :1'.
+        /// 
+        /// The description event is sent after creating an xdg_output (see
+        /// xdg_output_manager.get_xdg_output) and whenever the description
+        /// changes. The description is optional, and may not be sent at all.
+        /// 
+        /// For objects of version 2 and lower, this event is only sent once per
+        /// xdg_output, and the description does not change over the lifetime of
+        /// the wl_output global.
+        /// </para>
+        /// </summary>
+        /// <param name="description">output description</param>
+        public delegate void DescriptionHandler(ZxdgOutputV1 zxdgOutputV1, string description);
+        public event LogicalPositionHandler LogicalPosition;
+        public event LogicalSizeHandler LogicalSize;
+        public event DoneHandler Done;
+        public event NameHandler Name;
+        public event DescriptionHandler Description;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -286,66 +283,31 @@ namespace WaylandNET.Client.Protocol
                     {
                         var x = (int)arguments[0];
                         var y = (int)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.LogicalPosition(this, x, y);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        LogicalPosition?.Invoke(this, x, y);
                         break;
                     }
                 case EventOpcode.LogicalSize:
                     {
                         var width = (int)arguments[0];
                         var height = (int)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.LogicalSize(this, width, height);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        LogicalSize?.Invoke(this, width, height);
                         break;
                     }
                 case EventOpcode.Done:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Done(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Done?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Name:
                     {
                         var name = (string)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Name(this, name);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Name?.Invoke(this, name);
                         break;
                     }
                 case EventOpcode.Description:
                     {
                         var description = (string)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Description(this, description);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Description?.Invoke(this, description);
                         break;
                     }
                 default:

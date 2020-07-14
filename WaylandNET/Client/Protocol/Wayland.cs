@@ -51,38 +51,36 @@ namespace WaylandNET.Client.Protocol
             Error,
             DeleteId,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// fatal error event
-            /// <para>
-            /// The error event is sent out when a fatal (non-recoverable)
-            /// error has occurred.  The object_id argument is the object
-            /// where the error occurred, most often in response to a request
-            /// to that object.  The code identifies the error and is defined
-            /// by the object interface.  As such, each interface defines its
-            /// own set of error codes.  The message is a brief description
-            /// of the error, for (debugging) convenience.
-            /// </para>
-            /// </summary>
-            /// <param name="objectId">object where the error occurred</param>
-            /// <param name="code">error code</param>
-            /// <param name="message">error description</param>
-            void Error(WlDisplay wlDisplay, WaylandClientObject objectId, uint code, string message);
-            /// <summary>
-            /// acknowledge object ID deletion
-            /// <para>
-            /// This event is used internally by the object ID management
-            /// logic. When a client deletes an object that it had created,
-            /// the server will send this event to acknowledge that it has
-            /// seen the delete request. When the client receives this event,
-            /// it will know that it can safely reuse the object ID.
-            /// </para>
-            /// </summary>
-            /// <param name="id">deleted object ID</param>
-            void DeleteId(WlDisplay wlDisplay, uint id);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// fatal error event
+        /// <para>
+        /// The error event is sent out when a fatal (non-recoverable)
+        /// error has occurred.  The object_id argument is the object
+        /// where the error occurred, most often in response to a request
+        /// to that object.  The code identifies the error and is defined
+        /// by the object interface.  As such, each interface defines its
+        /// own set of error codes.  The message is a brief description
+        /// of the error, for (debugging) convenience.
+        /// </para>
+        /// </summary>
+        /// <param name="objectId">object where the error occurred</param>
+        /// <param name="code">error code</param>
+        /// <param name="message">error description</param>
+        public delegate void ErrorHandler(WlDisplay wlDisplay, WaylandClientObject objectId, uint code, string message);
+        /// <summary>
+        /// acknowledge object ID deletion
+        /// <para>
+        /// This event is used internally by the object ID management
+        /// logic. When a client deletes an object that it had created,
+        /// the server will send this event to acknowledge that it has
+        /// seen the delete request. When the client receives this event,
+        /// it will know that it can safely reuse the object ID.
+        /// </para>
+        /// </summary>
+        /// <param name="id">deleted object ID</param>
+        public delegate void DeleteIdHandler(WlDisplay wlDisplay, uint id);
+        public event ErrorHandler Error;
+        public event DeleteIdHandler DeleteId;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -92,27 +90,13 @@ namespace WaylandNET.Client.Protocol
                         var objectId = (WaylandClientObject)arguments[0];
                         var code = (uint)arguments[1];
                         var message = (string)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Error(this, objectId, code, message);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Error?.Invoke(this, objectId, code, message);
                         break;
                     }
                 case EventOpcode.DeleteId:
                     {
                         var id = (uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.DeleteId(this, id);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        DeleteId?.Invoke(this, id);
                         break;
                     }
                 default:
@@ -148,7 +132,7 @@ namespace WaylandNET.Client.Protocol
         /// server request.
         /// </para>
         /// </summary>
-        public enum Error : int
+        public enum ErrorEnum : int
         {
             InvalidObject = 0,
             InvalidMethod = 1,
@@ -242,41 +226,39 @@ namespace WaylandNET.Client.Protocol
             Global,
             GlobalRemove,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// announce global object
-            /// <para>
-            /// Notify the client of global objects.
-            /// 
-            /// The event notifies the client that a global object with
-            /// the given name is now available, and it implements the
-            /// given version of the given interface.
-            /// </para>
-            /// </summary>
-            /// <param name="name">numeric name of the global object</param>
-            /// <param name="@interface">interface implemented by the object</param>
-            /// <param name="version">interface version</param>
-            void Global(WlRegistry wlRegistry, uint name, string @interface, uint version);
-            /// <summary>
-            /// announce removal of global object
-            /// <para>
-            /// Notify the client of removed global objects.
-            /// 
-            /// This event notifies the client that the global identified
-            /// by name is no longer available.  If the client bound to
-            /// the global using the bind request, the client should now
-            /// destroy that object.
-            /// 
-            /// The object remains valid and requests to the object will be
-            /// ignored until the client destroys it, to avoid races between
-            /// the global going away and a client sending a request to it.
-            /// </para>
-            /// </summary>
-            /// <param name="name">numeric name of the global object</param>
-            void GlobalRemove(WlRegistry wlRegistry, uint name);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// announce global object
+        /// <para>
+        /// Notify the client of global objects.
+        /// 
+        /// The event notifies the client that a global object with
+        /// the given name is now available, and it implements the
+        /// given version of the given interface.
+        /// </para>
+        /// </summary>
+        /// <param name="name">numeric name of the global object</param>
+        /// <param name="@interface">interface implemented by the object</param>
+        /// <param name="version">interface version</param>
+        public delegate void GlobalHandler(WlRegistry wlRegistry, uint name, string @interface, uint version);
+        /// <summary>
+        /// announce removal of global object
+        /// <para>
+        /// Notify the client of removed global objects.
+        /// 
+        /// This event notifies the client that the global identified
+        /// by name is no longer available.  If the client bound to
+        /// the global using the bind request, the client should now
+        /// destroy that object.
+        /// 
+        /// The object remains valid and requests to the object will be
+        /// ignored until the client destroys it, to avoid races between
+        /// the global going away and a client sending a request to it.
+        /// </para>
+        /// </summary>
+        /// <param name="name">numeric name of the global object</param>
+        public delegate void GlobalRemoveHandler(WlRegistry wlRegistry, uint name);
+        public event GlobalHandler Global;
+        public event GlobalRemoveHandler GlobalRemove;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -286,27 +268,13 @@ namespace WaylandNET.Client.Protocol
                         var name = (uint)arguments[0];
                         var @interface = (string)arguments[1];
                         var version = (uint)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Global(this, name, @interface, version);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Global?.Invoke(this, name, @interface, version);
                         break;
                     }
                 case EventOpcode.GlobalRemove:
                     {
                         var name = (uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.GlobalRemove(this, name);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        GlobalRemove?.Invoke(this, name);
                         break;
                     }
                 default:
@@ -372,18 +340,15 @@ namespace WaylandNET.Client.Protocol
         {
             Done,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// done event
-            /// <para>
-            /// Notify the client when the related request is done.
-            /// </para>
-            /// </summary>
-            /// <param name="callbackData">request-specific data for the callback</param>
-            void Done(WlCallback wlCallback, uint callbackData);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// done event
+        /// <para>
+        /// Notify the client when the related request is done.
+        /// </para>
+        /// </summary>
+        /// <param name="callbackData">request-specific data for the callback</param>
+        public delegate void DoneHandler(WlCallback wlCallback, uint callbackData);
+        public event DoneHandler Done;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -391,14 +356,7 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Done:
                     {
                         var callbackData = (uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Done(this, callbackData);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Done?.Invoke(this, callbackData);
                         Die();
                         break;
                     }
@@ -443,10 +401,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -519,10 +473,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -561,7 +511,7 @@ namespace WaylandNET.Client.Protocol
         /// <param name="height">buffer height, in pixels</param>
         /// <param name="stride">number of bytes from the beginning of one row to the beginning of the next row</param>
         /// <param name="format">buffer pixel format</param>
-        public WlBuffer CreateBuffer(int offset, int width, int height, int stride, WlShm.Format format)
+        public WlBuffer CreateBuffer(int offset, int width, int height, int stride, WlShm.FormatEnum format)
         {
             uint id = Connection.AllocateId();
             Marshal((ushort)RequestOpcode.CreateBuffer, id, offset, width, height, stride, (uint)format);
@@ -626,35 +576,25 @@ namespace WaylandNET.Client.Protocol
         {
             Format,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// pixel format description
-            /// <para>
-            /// Informs the client about a valid pixel format that
-            /// can be used for buffers. Known formats include
-            /// argb8888 and xrgb8888.
-            /// </para>
-            /// </summary>
-            /// <param name="format">buffer pixel format</param>
-            void Format(WlShm wlShm, Format format);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// pixel format description
+        /// <para>
+        /// Informs the client about a valid pixel format that
+        /// can be used for buffers. Known formats include
+        /// argb8888 and xrgb8888.
+        /// </para>
+        /// </summary>
+        /// <param name="format">buffer pixel format</param>
+        public delegate void FormatHandler(WlShm wlShm, FormatEnum format);
+        public event FormatHandler Format;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
             {
                 case EventOpcode.Format:
                     {
-                        var format = (Format)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Format(this, format);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        var format = (FormatEnum)(uint)arguments[0];
+                        Format?.Invoke(this, format);
                         break;
                     }
                 default:
@@ -701,7 +641,7 @@ namespace WaylandNET.Client.Protocol
         /// will be reported by the format event.
         /// </para>
         /// </summary>
-        public enum Format : int
+        public enum FormatEnum : int
         {
             Argb8888 = 0,
             Xrgb8888 = 1,
@@ -849,42 +789,32 @@ namespace WaylandNET.Client.Protocol
         {
             Release,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// compositor releases buffer
-            /// <para>
-            /// Sent when this wl_buffer is no longer used by the compositor.
-            /// The client is now free to reuse or destroy this buffer and its
-            /// backing storage.
-            /// 
-            /// If a client receives a release event before the frame callback
-            /// requested in the same wl_surface.commit that attaches this
-            /// wl_buffer to a surface, then the client is immediately free to
-            /// reuse the buffer and its backing storage, and does not need a
-            /// second buffer for the next surface content update. Typically
-            /// this is possible, when the compositor maintains a copy of the
-            /// wl_surface contents, e.g. as a GL texture. This is an important
-            /// optimization for GL(ES) compositors with wl_shm clients.
-            /// </para>
-            /// </summary>
-            void Release(WlBuffer wlBuffer);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// compositor releases buffer
+        /// <para>
+        /// Sent when this wl_buffer is no longer used by the compositor.
+        /// The client is now free to reuse or destroy this buffer and its
+        /// backing storage.
+        /// 
+        /// If a client receives a release event before the frame callback
+        /// requested in the same wl_surface.commit that attaches this
+        /// wl_buffer to a surface, then the client is immediately free to
+        /// reuse the buffer and its backing storage, and does not need a
+        /// second buffer for the next surface content update. Typically
+        /// this is possible, when the compositor maintains a copy of the
+        /// wl_surface contents, e.g. as a GL texture. This is an important
+        /// optimization for GL(ES) compositors with wl_shm clients.
+        /// </para>
+        /// </summary>
+        public delegate void ReleaseHandler(WlBuffer wlBuffer);
+        public event ReleaseHandler Release;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
             {
                 case EventOpcode.Release:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Release(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Release?.Invoke(this);
                         break;
                     }
                 default:
@@ -950,71 +880,70 @@ namespace WaylandNET.Client.Protocol
             SourceActions,
             Action,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// advertise offered mime type
-            /// <para>
-            /// Sent immediately after creating the wl_data_offer object.  One
-            /// event per offered mime type.
-            /// </para>
-            /// </summary>
-            /// <param name="mimeType">offered mime type</param>
-            void Offer(WlDataOffer wlDataOffer, string mimeType);
-            /// <summary>
-            /// notify the source-side available actions
-            /// <para>
-            /// This event indicates the actions offered by the data source. It
-            /// will be sent right after wl_data_device.enter, or anytime the source
-            /// side changes its offered actions through wl_data_source.set_actions.
-            /// </para>
-            /// </summary>
-            /// <param name="sourceActions">actions offered by the data source</param>
-            void SourceActions(WlDataOffer wlDataOffer, WlDataDeviceManager.DndAction sourceActions);
-            /// <summary>
-            /// notify the selected action
-            /// <para>
-            /// This event indicates the action selected by the compositor after
-            /// matching the source/destination side actions. Only one action (or
-            /// none) will be offered here.
-            /// 
-            /// This event can be emitted multiple times during the drag-and-drop
-            /// operation in response to destination side action changes through
-            /// wl_data_offer.set_actions.
-            /// 
-            /// This event will no longer be emitted after wl_data_device.drop
-            /// happened on the drag-and-drop destination, the client must
-            /// honor the last action received, or the last preferred one set
-            /// through wl_data_offer.set_actions when handling an "ask" action.
-            /// 
-            /// Compositors may also change the selected action on the fly, mainly
-            /// in response to keyboard modifier changes during the drag-and-drop
-            /// operation.
-            /// 
-            /// The most recent action received is always the valid one. Prior to
-            /// receiving wl_data_device.drop, the chosen action may change (e.g.
-            /// due to keyboard modifiers being pressed). At the time of receiving
-            /// wl_data_device.drop the drag-and-drop destination must honor the
-            /// last action received.
-            /// 
-            /// Action changes may still happen after wl_data_device.drop,
-            /// especially on "ask" actions, where the drag-and-drop destination
-            /// may choose another action afterwards. Action changes happening
-            /// at this stage are always the result of inter-client negotiation, the
-            /// compositor shall no longer be able to induce a different action.
-            /// 
-            /// Upon "ask" actions, it is expected that the drag-and-drop destination
-            /// may potentially choose a different action and/or mime type,
-            /// based on wl_data_offer.source_actions and finally chosen by the
-            /// user (e.g. popping up a menu with the available options). The
-            /// final wl_data_offer.set_actions and wl_data_offer.accept requests
-            /// must happen before the call to wl_data_offer.finish.
-            /// </para>
-            /// </summary>
-            /// <param name="dndAction">action selected by the compositor</param>
-            void Action(WlDataOffer wlDataOffer, WlDataDeviceManager.DndAction dndAction);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// advertise offered mime type
+        /// <para>
+        /// Sent immediately after creating the wl_data_offer object.  One
+        /// event per offered mime type.
+        /// </para>
+        /// </summary>
+        /// <param name="mimeType">offered mime type</param>
+        public delegate void OfferHandler(WlDataOffer wlDataOffer, string mimeType);
+        /// <summary>
+        /// notify the source-side available actions
+        /// <para>
+        /// This event indicates the actions offered by the data source. It
+        /// will be sent right after wl_data_device.enter, or anytime the source
+        /// side changes its offered actions through wl_data_source.set_actions.
+        /// </para>
+        /// </summary>
+        /// <param name="sourceActions">actions offered by the data source</param>
+        public delegate void SourceActionsHandler(WlDataOffer wlDataOffer, WlDataDeviceManager.DndAction sourceActions);
+        /// <summary>
+        /// notify the selected action
+        /// <para>
+        /// This event indicates the action selected by the compositor after
+        /// matching the source/destination side actions. Only one action (or
+        /// none) will be offered here.
+        /// 
+        /// This event can be emitted multiple times during the drag-and-drop
+        /// operation in response to destination side action changes through
+        /// wl_data_offer.set_actions.
+        /// 
+        /// This event will no longer be emitted after wl_data_device.drop
+        /// happened on the drag-and-drop destination, the client must
+        /// honor the last action received, or the last preferred one set
+        /// through wl_data_offer.set_actions when handling an "ask" action.
+        /// 
+        /// Compositors may also change the selected action on the fly, mainly
+        /// in response to keyboard modifier changes during the drag-and-drop
+        /// operation.
+        /// 
+        /// The most recent action received is always the valid one. Prior to
+        /// receiving wl_data_device.drop, the chosen action may change (e.g.
+        /// due to keyboard modifiers being pressed). At the time of receiving
+        /// wl_data_device.drop the drag-and-drop destination must honor the
+        /// last action received.
+        /// 
+        /// Action changes may still happen after wl_data_device.drop,
+        /// especially on "ask" actions, where the drag-and-drop destination
+        /// may choose another action afterwards. Action changes happening
+        /// at this stage are always the result of inter-client negotiation, the
+        /// compositor shall no longer be able to induce a different action.
+        /// 
+        /// Upon "ask" actions, it is expected that the drag-and-drop destination
+        /// may potentially choose a different action and/or mime type,
+        /// based on wl_data_offer.source_actions and finally chosen by the
+        /// user (e.g. popping up a menu with the available options). The
+        /// final wl_data_offer.set_actions and wl_data_offer.accept requests
+        /// must happen before the call to wl_data_offer.finish.
+        /// </para>
+        /// </summary>
+        /// <param name="dndAction">action selected by the compositor</param>
+        public delegate void ActionHandler(WlDataOffer wlDataOffer, WlDataDeviceManager.DndAction dndAction);
+        public event OfferHandler Offer;
+        public event SourceActionsHandler SourceActions;
+        public event ActionHandler Action;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -1022,40 +951,19 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Offer:
                     {
                         var mimeType = (string)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Offer(this, mimeType);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Offer?.Invoke(this, mimeType);
                         break;
                     }
                 case EventOpcode.SourceActions:
                     {
                         var sourceActions = (WlDataDeviceManager.DndAction)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.SourceActions(this, sourceActions);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        SourceActions?.Invoke(this, sourceActions);
                         break;
                     }
                 case EventOpcode.Action:
                     {
                         var dndAction = (WlDataDeviceManager.DndAction)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Action(this, dndAction);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Action?.Invoke(this, dndAction);
                         break;
                     }
                 default:
@@ -1253,117 +1161,119 @@ namespace WaylandNET.Client.Protocol
             DndFinished,
             Action,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// a target accepts an offered mime type
-            /// <para>
-            /// Sent when a target accepts pointer_focus or motion events.  If
-            /// a target does not accept any of the offered types, type is NULL.
-            /// 
-            /// Used for feedback during drag-and-drop.
-            /// </para>
-            /// </summary>
-            /// <param name="mimeType">mime type accepted by the target</param>
-            void Target(WlDataSource wlDataSource, string mimeType);
-            /// <summary>
-            /// send the data
-            /// <para>
-            /// Request for data from the client.  Send the data as the
-            /// specified mime type over the passed file descriptor, then
-            /// close it.
-            /// </para>
-            /// </summary>
-            /// <param name="mimeType">mime type for the data</param>
-            /// <param name="fd">file descriptor for the data</param>
-            void Send(WlDataSource wlDataSource, string mimeType, IntPtr fd);
-            /// <summary>
-            /// selection was cancelled
-            /// <para>
-            /// This data source is no longer valid. There are several reasons why
-            /// this could happen:
-            /// 
-            /// - The data source has been replaced by another data source.
-            /// - The drag-and-drop operation was performed, but the drop destination
-            /// did not accept any of the mime types offered through
-            /// wl_data_source.target.
-            /// - The drag-and-drop operation was performed, but the drop destination
-            /// did not select any of the actions present in the mask offered through
-            /// wl_data_source.action.
-            /// - The drag-and-drop operation was performed but didn't happen over a
-            /// surface.
-            /// - The compositor cancelled the drag-and-drop operation (e.g. compositor
-            /// dependent timeouts to avoid stale drag-and-drop transfers).
-            /// 
-            /// The client should clean up and destroy this data source.
-            /// 
-            /// For objects of version 2 or older, wl_data_source.cancelled will
-            /// only be emitted if the data source was replaced by another data
-            /// source.
-            /// </para>
-            /// </summary>
-            void Cancelled(WlDataSource wlDataSource);
-            /// <summary>
-            /// the drag-and-drop operation physically finished
-            /// <para>
-            /// The user performed the drop action. This event does not indicate
-            /// acceptance, wl_data_source.cancelled may still be emitted afterwards
-            /// if the drop destination does not accept any mime type.
-            /// 
-            /// However, this event might however not be received if the compositor
-            /// cancelled the drag-and-drop operation before this event could happen.
-            /// 
-            /// Note that the data_source may still be used in the future and should
-            /// not be destroyed here.
-            /// </para>
-            /// </summary>
-            void DndDropPerformed(WlDataSource wlDataSource);
-            /// <summary>
-            /// the drag-and-drop operation concluded
-            /// <para>
-            /// The drop destination finished interoperating with this data
-            /// source, so the client is now free to destroy this data source and
-            /// free all associated data.
-            /// 
-            /// If the action used to perform the operation was "move", the
-            /// source can now delete the transferred data.
-            /// </para>
-            /// </summary>
-            void DndFinished(WlDataSource wlDataSource);
-            /// <summary>
-            /// notify the selected action
-            /// <para>
-            /// This event indicates the action selected by the compositor after
-            /// matching the source/destination side actions. Only one action (or
-            /// none) will be offered here.
-            /// 
-            /// This event can be emitted multiple times during the drag-and-drop
-            /// operation, mainly in response to destination side changes through
-            /// wl_data_offer.set_actions, and as the data device enters/leaves
-            /// surfaces.
-            /// 
-            /// It is only possible to receive this event after
-            /// wl_data_source.dnd_drop_performed if the drag-and-drop operation
-            /// ended in an "ask" action, in which case the final wl_data_source.action
-            /// event will happen immediately before wl_data_source.dnd_finished.
-            /// 
-            /// Compositors may also change the selected action on the fly, mainly
-            /// in response to keyboard modifier changes during the drag-and-drop
-            /// operation.
-            /// 
-            /// The most recent action received is always the valid one. The chosen
-            /// action may change alongside negotiation (e.g. an "ask" action can turn
-            /// into a "move" operation), so the effects of the final action must
-            /// always be applied in wl_data_offer.dnd_finished.
-            /// 
-            /// Clients can trigger cursor surface changes from this point, so
-            /// they reflect the current action.
-            /// </para>
-            /// </summary>
-            /// <param name="dndAction">action selected by the compositor</param>
-            void Action(WlDataSource wlDataSource, WlDataDeviceManager.DndAction dndAction);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// a target accepts an offered mime type
+        /// <para>
+        /// Sent when a target accepts pointer_focus or motion events.  If
+        /// a target does not accept any of the offered types, type is NULL.
+        /// 
+        /// Used for feedback during drag-and-drop.
+        /// </para>
+        /// </summary>
+        /// <param name="mimeType">mime type accepted by the target</param>
+        public delegate void TargetHandler(WlDataSource wlDataSource, string mimeType);
+        /// <summary>
+        /// send the data
+        /// <para>
+        /// Request for data from the client.  Send the data as the
+        /// specified mime type over the passed file descriptor, then
+        /// close it.
+        /// </para>
+        /// </summary>
+        /// <param name="mimeType">mime type for the data</param>
+        /// <param name="fd">file descriptor for the data</param>
+        public delegate void SendHandler(WlDataSource wlDataSource, string mimeType, IntPtr fd);
+        /// <summary>
+        /// selection was cancelled
+        /// <para>
+        /// This data source is no longer valid. There are several reasons why
+        /// this could happen:
+        /// 
+        /// - The data source has been replaced by another data source.
+        /// - The drag-and-drop operation was performed, but the drop destination
+        /// did not accept any of the mime types offered through
+        /// wl_data_source.target.
+        /// - The drag-and-drop operation was performed, but the drop destination
+        /// did not select any of the actions present in the mask offered through
+        /// wl_data_source.action.
+        /// - The drag-and-drop operation was performed but didn't happen over a
+        /// surface.
+        /// - The compositor cancelled the drag-and-drop operation (e.g. compositor
+        /// dependent timeouts to avoid stale drag-and-drop transfers).
+        /// 
+        /// The client should clean up and destroy this data source.
+        /// 
+        /// For objects of version 2 or older, wl_data_source.cancelled will
+        /// only be emitted if the data source was replaced by another data
+        /// source.
+        /// </para>
+        /// </summary>
+        public delegate void CancelledHandler(WlDataSource wlDataSource);
+        /// <summary>
+        /// the drag-and-drop operation physically finished
+        /// <para>
+        /// The user performed the drop action. This event does not indicate
+        /// acceptance, wl_data_source.cancelled may still be emitted afterwards
+        /// if the drop destination does not accept any mime type.
+        /// 
+        /// However, this event might however not be received if the compositor
+        /// cancelled the drag-and-drop operation before this event could happen.
+        /// 
+        /// Note that the data_source may still be used in the future and should
+        /// not be destroyed here.
+        /// </para>
+        /// </summary>
+        public delegate void DndDropPerformedHandler(WlDataSource wlDataSource);
+        /// <summary>
+        /// the drag-and-drop operation concluded
+        /// <para>
+        /// The drop destination finished interoperating with this data
+        /// source, so the client is now free to destroy this data source and
+        /// free all associated data.
+        /// 
+        /// If the action used to perform the operation was "move", the
+        /// source can now delete the transferred data.
+        /// </para>
+        /// </summary>
+        public delegate void DndFinishedHandler(WlDataSource wlDataSource);
+        /// <summary>
+        /// notify the selected action
+        /// <para>
+        /// This event indicates the action selected by the compositor after
+        /// matching the source/destination side actions. Only one action (or
+        /// none) will be offered here.
+        /// 
+        /// This event can be emitted multiple times during the drag-and-drop
+        /// operation, mainly in response to destination side changes through
+        /// wl_data_offer.set_actions, and as the data device enters/leaves
+        /// surfaces.
+        /// 
+        /// It is only possible to receive this event after
+        /// wl_data_source.dnd_drop_performed if the drag-and-drop operation
+        /// ended in an "ask" action, in which case the final wl_data_source.action
+        /// event will happen immediately before wl_data_source.dnd_finished.
+        /// 
+        /// Compositors may also change the selected action on the fly, mainly
+        /// in response to keyboard modifier changes during the drag-and-drop
+        /// operation.
+        /// 
+        /// The most recent action received is always the valid one. The chosen
+        /// action may change alongside negotiation (e.g. an "ask" action can turn
+        /// into a "move" operation), so the effects of the final action must
+        /// always be applied in wl_data_offer.dnd_finished.
+        /// 
+        /// Clients can trigger cursor surface changes from this point, so
+        /// they reflect the current action.
+        /// </para>
+        /// </summary>
+        /// <param name="dndAction">action selected by the compositor</param>
+        public delegate void ActionHandler(WlDataSource wlDataSource, WlDataDeviceManager.DndAction dndAction);
+        public event TargetHandler Target;
+        public event SendHandler Send;
+        public event CancelledHandler Cancelled;
+        public event DndDropPerformedHandler DndDropPerformed;
+        public event DndFinishedHandler DndFinished;
+        public event ActionHandler Action;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -1371,77 +1281,35 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Target:
                     {
                         var mimeType = (string)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Target(this, mimeType);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Target?.Invoke(this, mimeType);
                         break;
                     }
                 case EventOpcode.Send:
                     {
                         var mimeType = (string)arguments[0];
                         var fd = (IntPtr)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.Send(this, mimeType, fd);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Send?.Invoke(this, mimeType, fd);
                         break;
                     }
                 case EventOpcode.Cancelled:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Cancelled(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Cancelled?.Invoke(this);
                         break;
                     }
                 case EventOpcode.DndDropPerformed:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.DndDropPerformed(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        DndDropPerformed?.Invoke(this);
                         break;
                     }
                 case EventOpcode.DndFinished:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.DndFinished(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        DndFinished?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Action:
                     {
                         var dndAction = (WlDataDeviceManager.DndAction)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Action(this, dndAction);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Action?.Invoke(this, dndAction);
                         break;
                     }
                 default:
@@ -1574,98 +1442,100 @@ namespace WaylandNET.Client.Protocol
             Drop,
             Selection,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// introduce a new wl_data_offer
-            /// <para>
-            /// The data_offer event introduces a new wl_data_offer object,
-            /// which will subsequently be used in either the
-            /// data_device.enter event (for drag-and-drop) or the
-            /// data_device.selection event (for selections).  Immediately
-            /// following the data_device_data_offer event, the new data_offer
-            /// object will send out data_offer.offer events to describe the
-            /// mime types it offers.
-            /// </para>
-            /// </summary>
-            /// <param name="id">the new data_offer object</param>
-            void DataOffer(WlDataDevice wlDataDevice, WlDataOffer id);
-            /// <summary>
-            /// initiate drag-and-drop session
-            /// <para>
-            /// This event is sent when an active drag-and-drop pointer enters
-            /// a surface owned by the client.  The position of the pointer at
-            /// enter time is provided by the x and y arguments, in surface-local
-            /// coordinates.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the enter event</param>
-            /// <param name="surface">client surface entered</param>
-            /// <param name="x">surface-local x coordinate</param>
-            /// <param name="y">surface-local y coordinate</param>
-            /// <param name="id">source data_offer object</param>
-            void Enter(WlDataDevice wlDataDevice, uint serial, WlSurface surface, double x, double y, WlDataOffer id);
-            /// <summary>
-            /// end drag-and-drop session
-            /// <para>
-            /// This event is sent when the drag-and-drop pointer leaves the
-            /// surface and the session ends.  The client must destroy the
-            /// wl_data_offer introduced at enter time at this point.
-            /// </para>
-            /// </summary>
-            void Leave(WlDataDevice wlDataDevice);
-            /// <summary>
-            /// drag-and-drop session motion
-            /// <para>
-            /// This event is sent when the drag-and-drop pointer moves within
-            /// the currently focused surface. The new position of the pointer
-            /// is provided by the x and y arguments, in surface-local
-            /// coordinates.
-            /// </para>
-            /// </summary>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="x">surface-local x coordinate</param>
-            /// <param name="y">surface-local y coordinate</param>
-            void Motion(WlDataDevice wlDataDevice, uint time, double x, double y);
-            /// <summary>
-            /// end drag-and-drop session successfully
-            /// <para>
-            /// The event is sent when a drag-and-drop operation is ended
-            /// because the implicit grab is removed.
-            /// 
-            /// The drag-and-drop destination is expected to honor the last action
-            /// received through wl_data_offer.action, if the resulting action is
-            /// "copy" or "move", the destination can still perform
-            /// wl_data_offer.receive requests, and is expected to end all
-            /// transfers with a wl_data_offer.finish request.
-            /// 
-            /// If the resulting action is "ask", the action will not be considered
-            /// final. The drag-and-drop destination is expected to perform one last
-            /// wl_data_offer.set_actions request, or wl_data_offer.destroy in order
-            /// to cancel the operation.
-            /// </para>
-            /// </summary>
-            void Drop(WlDataDevice wlDataDevice);
-            /// <summary>
-            /// advertise new selection
-            /// <para>
-            /// The selection event is sent out to notify the client of a new
-            /// wl_data_offer for the selection for this device.  The
-            /// data_device.data_offer and the data_offer.offer events are
-            /// sent out immediately before this event to introduce the data
-            /// offer object.  The selection event is sent to a client
-            /// immediately before receiving keyboard focus and when a new
-            /// selection is set while the client has keyboard focus.  The
-            /// data_offer is valid until a new data_offer or NULL is received
-            /// or until the client loses keyboard focus.  The client must
-            /// destroy the previous selection data_offer, if any, upon receiving
-            /// this event.
-            /// </para>
-            /// </summary>
-            /// <param name="id">selection data_offer object</param>
-            void Selection(WlDataDevice wlDataDevice, WlDataOffer id);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// introduce a new wl_data_offer
+        /// <para>
+        /// The data_offer event introduces a new wl_data_offer object,
+        /// which will subsequently be used in either the
+        /// data_device.enter event (for drag-and-drop) or the
+        /// data_device.selection event (for selections).  Immediately
+        /// following the data_device_data_offer event, the new data_offer
+        /// object will send out data_offer.offer events to describe the
+        /// mime types it offers.
+        /// </para>
+        /// </summary>
+        /// <param name="id">the new data_offer object</param>
+        public delegate void DataOfferHandler(WlDataDevice wlDataDevice, WlDataOffer id);
+        /// <summary>
+        /// initiate drag-and-drop session
+        /// <para>
+        /// This event is sent when an active drag-and-drop pointer enters
+        /// a surface owned by the client.  The position of the pointer at
+        /// enter time is provided by the x and y arguments, in surface-local
+        /// coordinates.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the enter event</param>
+        /// <param name="surface">client surface entered</param>
+        /// <param name="x">surface-local x coordinate</param>
+        /// <param name="y">surface-local y coordinate</param>
+        /// <param name="id">source data_offer object</param>
+        public delegate void EnterHandler(WlDataDevice wlDataDevice, uint serial, WlSurface surface, double x, double y, WlDataOffer id);
+        /// <summary>
+        /// end drag-and-drop session
+        /// <para>
+        /// This event is sent when the drag-and-drop pointer leaves the
+        /// surface and the session ends.  The client must destroy the
+        /// wl_data_offer introduced at enter time at this point.
+        /// </para>
+        /// </summary>
+        public delegate void LeaveHandler(WlDataDevice wlDataDevice);
+        /// <summary>
+        /// drag-and-drop session motion
+        /// <para>
+        /// This event is sent when the drag-and-drop pointer moves within
+        /// the currently focused surface. The new position of the pointer
+        /// is provided by the x and y arguments, in surface-local
+        /// coordinates.
+        /// </para>
+        /// </summary>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="x">surface-local x coordinate</param>
+        /// <param name="y">surface-local y coordinate</param>
+        public delegate void MotionHandler(WlDataDevice wlDataDevice, uint time, double x, double y);
+        /// <summary>
+        /// end drag-and-drop session successfully
+        /// <para>
+        /// The event is sent when a drag-and-drop operation is ended
+        /// because the implicit grab is removed.
+        /// 
+        /// The drag-and-drop destination is expected to honor the last action
+        /// received through wl_data_offer.action, if the resulting action is
+        /// "copy" or "move", the destination can still perform
+        /// wl_data_offer.receive requests, and is expected to end all
+        /// transfers with a wl_data_offer.finish request.
+        /// 
+        /// If the resulting action is "ask", the action will not be considered
+        /// final. The drag-and-drop destination is expected to perform one last
+        /// wl_data_offer.set_actions request, or wl_data_offer.destroy in order
+        /// to cancel the operation.
+        /// </para>
+        /// </summary>
+        public delegate void DropHandler(WlDataDevice wlDataDevice);
+        /// <summary>
+        /// advertise new selection
+        /// <para>
+        /// The selection event is sent out to notify the client of a new
+        /// wl_data_offer for the selection for this device.  The
+        /// data_device.data_offer and the data_offer.offer events are
+        /// sent out immediately before this event to introduce the data
+        /// offer object.  The selection event is sent to a client
+        /// immediately before receiving keyboard focus and when a new
+        /// selection is set while the client has keyboard focus.  The
+        /// data_offer is valid until a new data_offer or NULL is received
+        /// or until the client loses keyboard focus.  The client must
+        /// destroy the previous selection data_offer, if any, upon receiving
+        /// this event.
+        /// </para>
+        /// </summary>
+        /// <param name="id">selection data_offer object</param>
+        public delegate void SelectionHandler(WlDataDevice wlDataDevice, WlDataOffer id);
+        public event DataOfferHandler DataOffer;
+        public event EnterHandler Enter;
+        public event LeaveHandler Leave;
+        public event MotionHandler Motion;
+        public event DropHandler Drop;
+        public event SelectionHandler Selection;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -1673,14 +1543,7 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.DataOffer:
                     {
                         var id = (WlDataOffer)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.DataOffer(this, id);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        DataOffer?.Invoke(this, id);
                         break;
                     }
                 case EventOpcode.Enter:
@@ -1690,26 +1553,12 @@ namespace WaylandNET.Client.Protocol
                         var x = (double)arguments[2];
                         var y = (double)arguments[3];
                         var id = (WlDataOffer)arguments[4];
-                        if (Listener != null)
-                        {
-                            Listener.Enter(this, serial, surface, x, y, id);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Enter?.Invoke(this, serial, surface, x, y, id);
                         break;
                     }
                 case EventOpcode.Leave:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Leave(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Leave?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Motion:
@@ -1717,39 +1566,18 @@ namespace WaylandNET.Client.Protocol
                         var time = (uint)arguments[0];
                         var x = (double)arguments[1];
                         var y = (double)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Motion(this, time, x, y);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Motion?.Invoke(this, time, x, y);
                         break;
                     }
                 case EventOpcode.Drop:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Drop(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Drop?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Selection:
                     {
                         var id = (WlDataOffer)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Selection(this, id);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Selection?.Invoke(this, id);
                         break;
                     }
                 default:
@@ -1904,10 +1732,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -2016,10 +1840,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -2101,54 +1921,53 @@ namespace WaylandNET.Client.Protocol
             Configure,
             PopupDone,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// ping client
-            /// <para>
-            /// Ping a client to check if it is receiving events and sending
-            /// requests. A client is expected to reply with a pong request.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the ping</param>
-            void Ping(WlShellSurface wlShellSurface, uint serial);
-            /// <summary>
-            /// suggest resize
-            /// <para>
-            /// The configure event asks the client to resize its surface.
-            /// 
-            /// The size is a hint, in the sense that the client is free to
-            /// ignore it if it doesn't resize, pick a smaller size (to
-            /// satisfy aspect ratio or resize in steps of NxM pixels).
-            /// 
-            /// The edges parameter provides a hint about how the surface
-            /// was resized. The client may use this information to decide
-            /// how to adjust its content to the new size (e.g. a scrolling
-            /// area might adjust its content position to leave the viewable
-            /// content unmoved).
-            /// 
-            /// The client is free to dismiss all but the last configure
-            /// event it received.
-            /// 
-            /// The width and height arguments specify the size of the window
-            /// in surface-local coordinates.
-            /// </para>
-            /// </summary>
-            /// <param name="edges">how the surface was resized</param>
-            /// <param name="width">new width of the surface</param>
-            /// <param name="height">new height of the surface</param>
-            void Configure(WlShellSurface wlShellSurface, ResizeEnum edges, int width, int height);
-            /// <summary>
-            /// popup interaction is done
-            /// <para>
-            /// The popup_done event is sent out when a popup grab is broken,
-            /// that is, when the user clicks a surface that doesn't belong
-            /// to the client owning the popup surface.
-            /// </para>
-            /// </summary>
-            void PopupDone(WlShellSurface wlShellSurface);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// ping client
+        /// <para>
+        /// Ping a client to check if it is receiving events and sending
+        /// requests. A client is expected to reply with a pong request.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the ping</param>
+        public delegate void PingHandler(WlShellSurface wlShellSurface, uint serial);
+        /// <summary>
+        /// suggest resize
+        /// <para>
+        /// The configure event asks the client to resize its surface.
+        /// 
+        /// The size is a hint, in the sense that the client is free to
+        /// ignore it if it doesn't resize, pick a smaller size (to
+        /// satisfy aspect ratio or resize in steps of NxM pixels).
+        /// 
+        /// The edges parameter provides a hint about how the surface
+        /// was resized. The client may use this information to decide
+        /// how to adjust its content to the new size (e.g. a scrolling
+        /// area might adjust its content position to leave the viewable
+        /// content unmoved).
+        /// 
+        /// The client is free to dismiss all but the last configure
+        /// event it received.
+        /// 
+        /// The width and height arguments specify the size of the window
+        /// in surface-local coordinates.
+        /// </para>
+        /// </summary>
+        /// <param name="edges">how the surface was resized</param>
+        /// <param name="width">new width of the surface</param>
+        /// <param name="height">new height of the surface</param>
+        public delegate void ConfigureHandler(WlShellSurface wlShellSurface, ResizeEnum edges, int width, int height);
+        /// <summary>
+        /// popup interaction is done
+        /// <para>
+        /// The popup_done event is sent out when a popup grab is broken,
+        /// that is, when the user clicks a surface that doesn't belong
+        /// to the client owning the popup surface.
+        /// </para>
+        /// </summary>
+        public delegate void PopupDoneHandler(WlShellSurface wlShellSurface);
+        public event PingHandler Ping;
+        public event ConfigureHandler Configure;
+        public event PopupDoneHandler PopupDone;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -2156,14 +1975,7 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Ping:
                     {
                         var serial = (uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Ping(this, serial);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Ping?.Invoke(this, serial);
                         break;
                     }
                 case EventOpcode.Configure:
@@ -2171,26 +1983,12 @@ namespace WaylandNET.Client.Protocol
                         var edges = (ResizeEnum)(uint)arguments[0];
                         var width = (int)arguments[1];
                         var height = (int)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Configure(this, edges, width, height);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Configure?.Invoke(this, edges, width, height);
                         break;
                     }
                 case EventOpcode.PopupDone:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.PopupDone(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        PopupDone?.Invoke(this);
                         break;
                     }
                 default:
@@ -2561,32 +2359,30 @@ namespace WaylandNET.Client.Protocol
             Enter,
             Leave,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// surface enters an output
-            /// <para>
-            /// This is emitted whenever a surface's creation, movement, or resizing
-            /// results in some part of it being within the scanout region of an
-            /// output.
-            /// 
-            /// Note that a surface may be overlapping with zero or more outputs.
-            /// </para>
-            /// </summary>
-            /// <param name="output">output entered by the surface</param>
-            void Enter(WlSurface wlSurface, WlOutput output);
-            /// <summary>
-            /// surface leaves an output
-            /// <para>
-            /// This is emitted whenever a surface's creation, movement, or resizing
-            /// results in it no longer having any part of it within the scanout region
-            /// of an output.
-            /// </para>
-            /// </summary>
-            /// <param name="output">output left by the surface</param>
-            void Leave(WlSurface wlSurface, WlOutput output);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// surface enters an output
+        /// <para>
+        /// This is emitted whenever a surface's creation, movement, or resizing
+        /// results in some part of it being within the scanout region of an
+        /// output.
+        /// 
+        /// Note that a surface may be overlapping with zero or more outputs.
+        /// </para>
+        /// </summary>
+        /// <param name="output">output entered by the surface</param>
+        public delegate void EnterHandler(WlSurface wlSurface, WlOutput output);
+        /// <summary>
+        /// surface leaves an output
+        /// <para>
+        /// This is emitted whenever a surface's creation, movement, or resizing
+        /// results in it no longer having any part of it within the scanout region
+        /// of an output.
+        /// </para>
+        /// </summary>
+        /// <param name="output">output left by the surface</param>
+        public delegate void LeaveHandler(WlSurface wlSurface, WlOutput output);
+        public event EnterHandler Enter;
+        public event LeaveHandler Leave;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -2594,27 +2390,13 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Enter:
                     {
                         var output = (WlOutput)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Enter(this, output);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Enter?.Invoke(this, output);
                         break;
                     }
                 case EventOpcode.Leave:
                     {
                         var output = (WlOutput)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Leave(this, output);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Leave?.Invoke(this, output);
                         break;
                     }
                 default:
@@ -3036,51 +2818,49 @@ namespace WaylandNET.Client.Protocol
             Capabilities,
             Name,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// seat capabilities changed
-            /// <para>
-            /// This is emitted whenever a seat gains or loses the pointer,
-            /// keyboard or touch capabilities.  The argument is a capability
-            /// enum containing the complete set of capabilities this seat has.
-            /// 
-            /// When the pointer capability is added, a client may create a
-            /// wl_pointer object using the wl_seat.get_pointer request. This object
-            /// will receive pointer events until the capability is removed in the
-            /// future.
-            /// 
-            /// When the pointer capability is removed, a client should destroy the
-            /// wl_pointer objects associated with the seat where the capability was
-            /// removed, using the wl_pointer.release request. No further pointer
-            /// events will be received on these objects.
-            /// 
-            /// In some compositors, if a seat regains the pointer capability and a
-            /// client has a previously obtained wl_pointer object of version 4 or
-            /// less, that object may start sending pointer events again. This
-            /// behavior is considered a misinterpretation of the intended behavior
-            /// and must not be relied upon by the client. wl_pointer objects of
-            /// version 5 or later must not send events if created before the most
-            /// recent event notifying the client of an added pointer capability.
-            /// 
-            /// The above behavior also applies to wl_keyboard and wl_touch with the
-            /// keyboard and touch capabilities, respectively.
-            /// </para>
-            /// </summary>
-            /// <param name="capabilities">capabilities of the seat</param>
-            void Capabilities(WlSeat wlSeat, Capability capabilities);
-            /// <summary>
-            /// unique identifier for this seat
-            /// <para>
-            /// In a multiseat configuration this can be used by the client to help
-            /// identify which physical devices the seat represents. Based on
-            /// the seat configuration used by the compositor.
-            /// </para>
-            /// </summary>
-            /// <param name="name">seat identifier</param>
-            void Name(WlSeat wlSeat, string name);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// seat capabilities changed
+        /// <para>
+        /// This is emitted whenever a seat gains or loses the pointer,
+        /// keyboard or touch capabilities.  The argument is a capability
+        /// enum containing the complete set of capabilities this seat has.
+        /// 
+        /// When the pointer capability is added, a client may create a
+        /// wl_pointer object using the wl_seat.get_pointer request. This object
+        /// will receive pointer events until the capability is removed in the
+        /// future.
+        /// 
+        /// When the pointer capability is removed, a client should destroy the
+        /// wl_pointer objects associated with the seat where the capability was
+        /// removed, using the wl_pointer.release request. No further pointer
+        /// events will be received on these objects.
+        /// 
+        /// In some compositors, if a seat regains the pointer capability and a
+        /// client has a previously obtained wl_pointer object of version 4 or
+        /// less, that object may start sending pointer events again. This
+        /// behavior is considered a misinterpretation of the intended behavior
+        /// and must not be relied upon by the client. wl_pointer objects of
+        /// version 5 or later must not send events if created before the most
+        /// recent event notifying the client of an added pointer capability.
+        /// 
+        /// The above behavior also applies to wl_keyboard and wl_touch with the
+        /// keyboard and touch capabilities, respectively.
+        /// </para>
+        /// </summary>
+        /// <param name="capabilities">capabilities of the seat</param>
+        public delegate void CapabilitiesHandler(WlSeat wlSeat, Capability capabilities);
+        /// <summary>
+        /// unique identifier for this seat
+        /// <para>
+        /// In a multiseat configuration this can be used by the client to help
+        /// identify which physical devices the seat represents. Based on
+        /// the seat configuration used by the compositor.
+        /// </para>
+        /// </summary>
+        /// <param name="name">seat identifier</param>
+        public delegate void NameHandler(WlSeat wlSeat, string name);
+        public event CapabilitiesHandler Capabilities;
+        public event NameHandler Name;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -3088,27 +2868,13 @@ namespace WaylandNET.Client.Protocol
                 case EventOpcode.Capabilities:
                     {
                         var capabilities = (Capability)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Capabilities(this, capabilities);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Capabilities?.Invoke(this, capabilities);
                         break;
                     }
                 case EventOpcode.Name:
                     {
                         var name = (string)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Name(this, name);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Name?.Invoke(this, name);
                         break;
                     }
                 default:
@@ -3258,228 +3024,233 @@ namespace WaylandNET.Client.Protocol
             AxisStop,
             AxisDiscrete,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// enter event
-            /// <para>
-            /// Notification that this seat's pointer is focused on a certain
-            /// surface.
-            /// 
-            /// When a seat's focus enters a surface, the pointer image
-            /// is undefined and a client should respond to this event by setting
-            /// an appropriate pointer image with the set_cursor request.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the enter event</param>
-            /// <param name="surface">surface entered by the pointer</param>
-            /// <param name="surfaceX">surface-local x coordinate</param>
-            /// <param name="surfaceY">surface-local y coordinate</param>
-            void Enter(WlPointer wlPointer, uint serial, WlSurface surface, double surfaceX, double surfaceY);
-            /// <summary>
-            /// leave event
-            /// <para>
-            /// Notification that this seat's pointer is no longer focused on
-            /// a certain surface.
-            /// 
-            /// The leave notification is sent before the enter notification
-            /// for the new focus.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the leave event</param>
-            /// <param name="surface">surface left by the pointer</param>
-            void Leave(WlPointer wlPointer, uint serial, WlSurface surface);
-            /// <summary>
-            /// pointer motion event
-            /// <para>
-            /// Notification of pointer location change. The arguments
-            /// surface_x and surface_y are the location relative to the
-            /// focused surface.
-            /// </para>
-            /// </summary>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="surfaceX">surface-local x coordinate</param>
-            /// <param name="surfaceY">surface-local y coordinate</param>
-            void Motion(WlPointer wlPointer, uint time, double surfaceX, double surfaceY);
-            /// <summary>
-            /// pointer button event
-            /// <para>
-            /// Mouse button click and release notifications.
-            /// 
-            /// The location of the click is given by the last motion or
-            /// enter event.
-            /// The time argument is a timestamp with millisecond
-            /// granularity, with an undefined base.
-            /// 
-            /// The button is a button code as defined in the Linux kernel's
-            /// linux/input-event-codes.h header file, e.g. BTN_LEFT.
-            /// 
-            /// Any 16-bit button code value is reserved for future additions to the
-            /// kernel's event code list. All other button codes above 0xFFFF are
-            /// currently undefined but may be used in future versions of this
-            /// protocol.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the button event</param>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="button">button that produced the event</param>
-            /// <param name="state">physical state of the button</param>
-            void Button(WlPointer wlPointer, uint serial, uint time, uint button, ButtonState state);
-            /// <summary>
-            /// axis event
-            /// <para>
-            /// Scroll and other axis notifications.
-            /// 
-            /// For scroll events (vertical and horizontal scroll axes), the
-            /// value parameter is the length of a vector along the specified
-            /// axis in a coordinate space identical to those of motion events,
-            /// representing a relative movement along the specified axis.
-            /// 
-            /// For devices that support movements non-parallel to axes multiple
-            /// axis events will be emitted.
-            /// 
-            /// When applicable, for example for touch pads, the server can
-            /// choose to emit scroll events where the motion vector is
-            /// equivalent to a motion event vector.
-            /// 
-            /// When applicable, a client can transform its content relative to the
-            /// scroll distance.
-            /// </para>
-            /// </summary>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="axis">axis type</param>
-            /// <param name="value">length of vector in surface-local coordinate space</param>
-            void Axis(WlPointer wlPointer, uint time, Axis axis, double value);
-            /// <summary>
-            /// end of a pointer event sequence
-            /// <para>
-            /// Indicates the end of a set of events that logically belong together.
-            /// A client is expected to accumulate the data in all events within the
-            /// frame before proceeding.
-            /// 
-            /// All wl_pointer events before a wl_pointer.frame event belong
-            /// logically together. For example, in a diagonal scroll motion the
-            /// compositor will send an optional wl_pointer.axis_source event, two
-            /// wl_pointer.axis events (horizontal and vertical) and finally a
-            /// wl_pointer.frame event. The client may use this information to
-            /// calculate a diagonal vector for scrolling.
-            /// 
-            /// When multiple wl_pointer.axis events occur within the same frame,
-            /// the motion vector is the combined motion of all events.
-            /// When a wl_pointer.axis and a wl_pointer.axis_stop event occur within
-            /// the same frame, this indicates that axis movement in one axis has
-            /// stopped but continues in the other axis.
-            /// When multiple wl_pointer.axis_stop events occur within the same
-            /// frame, this indicates that these axes stopped in the same instance.
-            /// 
-            /// A wl_pointer.frame event is sent for every logical event group,
-            /// even if the group only contains a single wl_pointer event.
-            /// Specifically, a client may get a sequence: motion, frame, button,
-            /// frame, axis, frame, axis_stop, frame.
-            /// 
-            /// The wl_pointer.enter and wl_pointer.leave events are logical events
-            /// generated by the compositor and not the hardware. These events are
-            /// also grouped by a wl_pointer.frame. When a pointer moves from one
-            /// surface to another, a compositor should group the
-            /// wl_pointer.leave event within the same wl_pointer.frame.
-            /// However, a client must not rely on wl_pointer.leave and
-            /// wl_pointer.enter being in the same wl_pointer.frame.
-            /// Compositor-specific policies may require the wl_pointer.leave and
-            /// wl_pointer.enter event being split across multiple wl_pointer.frame
-            /// groups.
-            /// </para>
-            /// </summary>
-            void Frame(WlPointer wlPointer);
-            /// <summary>
-            /// axis source event
-            /// <para>
-            /// Source information for scroll and other axes.
-            /// 
-            /// This event does not occur on its own. It is sent before a
-            /// wl_pointer.frame event and carries the source information for
-            /// all events within that frame.
-            /// 
-            /// The source specifies how this event was generated. If the source is
-            /// wl_pointer.axis_source.finger, a wl_pointer.axis_stop event will be
-            /// sent when the user lifts the finger off the device.
-            /// 
-            /// If the source is wl_pointer.axis_source.wheel,
-            /// wl_pointer.axis_source.wheel_tilt or
-            /// wl_pointer.axis_source.continuous, a wl_pointer.axis_stop event may
-            /// or may not be sent. Whether a compositor sends an axis_stop event
-            /// for these sources is hardware-specific and implementation-dependent;
-            /// clients must not rely on receiving an axis_stop event for these
-            /// scroll sources and should treat scroll sequences from these scroll
-            /// sources as unterminated by default.
-            /// 
-            /// This event is optional. If the source is unknown for a particular
-            /// axis event sequence, no event is sent.
-            /// Only one wl_pointer.axis_source event is permitted per frame.
-            /// 
-            /// The order of wl_pointer.axis_discrete and wl_pointer.axis_source is
-            /// not guaranteed.
-            /// </para>
-            /// </summary>
-            /// <param name="axisSource">source of the axis event</param>
-            void AxisSource(WlPointer wlPointer, AxisSource axisSource);
-            /// <summary>
-            /// axis stop event
-            /// <para>
-            /// Stop notification for scroll and other axes.
-            /// 
-            /// For some wl_pointer.axis_source types, a wl_pointer.axis_stop event
-            /// is sent to notify a client that the axis sequence has terminated.
-            /// This enables the client to implement kinetic scrolling.
-            /// See the wl_pointer.axis_source documentation for information on when
-            /// this event may be generated.
-            /// 
-            /// Any wl_pointer.axis events with the same axis_source after this
-            /// event should be considered as the start of a new axis motion.
-            /// 
-            /// The timestamp is to be interpreted identical to the timestamp in the
-            /// wl_pointer.axis event. The timestamp value may be the same as a
-            /// preceding wl_pointer.axis event.
-            /// </para>
-            /// </summary>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="axis">the axis stopped with this event</param>
-            void AxisStop(WlPointer wlPointer, uint time, Axis axis);
-            /// <summary>
-            /// axis click event
-            /// <para>
-            /// Discrete step information for scroll and other axes.
-            /// 
-            /// This event carries the axis value of the wl_pointer.axis event in
-            /// discrete steps (e.g. mouse wheel clicks).
-            /// 
-            /// This event does not occur on its own, it is coupled with a
-            /// wl_pointer.axis event that represents this axis value on a
-            /// continuous scale. The protocol guarantees that each axis_discrete
-            /// event is always followed by exactly one axis event with the same
-            /// axis number within the same wl_pointer.frame. Note that the protocol
-            /// allows for other events to occur between the axis_discrete and
-            /// its coupled axis event, including other axis_discrete or axis
-            /// events.
-            /// 
-            /// This event is optional; continuous scrolling devices
-            /// like two-finger scrolling on touchpads do not have discrete
-            /// steps and do not generate this event.
-            /// 
-            /// The discrete value carries the directional information. e.g. a value
-            /// of -2 is two steps towards the negative direction of this axis.
-            /// 
-            /// The axis number is identical to the axis number in the associated
-            /// axis event.
-            /// 
-            /// The order of wl_pointer.axis_discrete and wl_pointer.axis_source is
-            /// not guaranteed.
-            /// </para>
-            /// </summary>
-            /// <param name="axis">axis type</param>
-            /// <param name="discrete">number of steps</param>
-            void AxisDiscrete(WlPointer wlPointer, Axis axis, int discrete);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// enter event
+        /// <para>
+        /// Notification that this seat's pointer is focused on a certain
+        /// surface.
+        /// 
+        /// When a seat's focus enters a surface, the pointer image
+        /// is undefined and a client should respond to this event by setting
+        /// an appropriate pointer image with the set_cursor request.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the enter event</param>
+        /// <param name="surface">surface entered by the pointer</param>
+        /// <param name="surfaceX">surface-local x coordinate</param>
+        /// <param name="surfaceY">surface-local y coordinate</param>
+        public delegate void EnterHandler(WlPointer wlPointer, uint serial, WlSurface surface, double surfaceX, double surfaceY);
+        /// <summary>
+        /// leave event
+        /// <para>
+        /// Notification that this seat's pointer is no longer focused on
+        /// a certain surface.
+        /// 
+        /// The leave notification is sent before the enter notification
+        /// for the new focus.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the leave event</param>
+        /// <param name="surface">surface left by the pointer</param>
+        public delegate void LeaveHandler(WlPointer wlPointer, uint serial, WlSurface surface);
+        /// <summary>
+        /// pointer motion event
+        /// <para>
+        /// Notification of pointer location change. The arguments
+        /// surface_x and surface_y are the location relative to the
+        /// focused surface.
+        /// </para>
+        /// </summary>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="surfaceX">surface-local x coordinate</param>
+        /// <param name="surfaceY">surface-local y coordinate</param>
+        public delegate void MotionHandler(WlPointer wlPointer, uint time, double surfaceX, double surfaceY);
+        /// <summary>
+        /// pointer button event
+        /// <para>
+        /// Mouse button click and release notifications.
+        /// 
+        /// The location of the click is given by the last motion or
+        /// enter event.
+        /// The time argument is a timestamp with millisecond
+        /// granularity, with an undefined base.
+        /// 
+        /// The button is a button code as defined in the Linux kernel's
+        /// linux/input-event-codes.h header file, e.g. BTN_LEFT.
+        /// 
+        /// Any 16-bit button code value is reserved for future additions to the
+        /// kernel's event code list. All other button codes above 0xFFFF are
+        /// currently undefined but may be used in future versions of this
+        /// protocol.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the button event</param>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="button">button that produced the event</param>
+        /// <param name="state">physical state of the button</param>
+        public delegate void ButtonHandler(WlPointer wlPointer, uint serial, uint time, uint button, ButtonState state);
+        /// <summary>
+        /// axis event
+        /// <para>
+        /// Scroll and other axis notifications.
+        /// 
+        /// For scroll events (vertical and horizontal scroll axes), the
+        /// value parameter is the length of a vector along the specified
+        /// axis in a coordinate space identical to those of motion events,
+        /// representing a relative movement along the specified axis.
+        /// 
+        /// For devices that support movements non-parallel to axes multiple
+        /// axis events will be emitted.
+        /// 
+        /// When applicable, for example for touch pads, the server can
+        /// choose to emit scroll events where the motion vector is
+        /// equivalent to a motion event vector.
+        /// 
+        /// When applicable, a client can transform its content relative to the
+        /// scroll distance.
+        /// </para>
+        /// </summary>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="axis">axis type</param>
+        /// <param name="value">length of vector in surface-local coordinate space</param>
+        public delegate void AxisHandler(WlPointer wlPointer, uint time, AxisEnum axis, double value);
+        /// <summary>
+        /// end of a pointer event sequence
+        /// <para>
+        /// Indicates the end of a set of events that logically belong together.
+        /// A client is expected to accumulate the data in all events within the
+        /// frame before proceeding.
+        /// 
+        /// All wl_pointer events before a wl_pointer.frame event belong
+        /// logically together. For example, in a diagonal scroll motion the
+        /// compositor will send an optional wl_pointer.axis_source event, two
+        /// wl_pointer.axis events (horizontal and vertical) and finally a
+        /// wl_pointer.frame event. The client may use this information to
+        /// calculate a diagonal vector for scrolling.
+        /// 
+        /// When multiple wl_pointer.axis events occur within the same frame,
+        /// the motion vector is the combined motion of all events.
+        /// When a wl_pointer.axis and a wl_pointer.axis_stop event occur within
+        /// the same frame, this indicates that axis movement in one axis has
+        /// stopped but continues in the other axis.
+        /// When multiple wl_pointer.axis_stop events occur within the same
+        /// frame, this indicates that these axes stopped in the same instance.
+        /// 
+        /// A wl_pointer.frame event is sent for every logical event group,
+        /// even if the group only contains a single wl_pointer event.
+        /// Specifically, a client may get a sequence: motion, frame, button,
+        /// frame, axis, frame, axis_stop, frame.
+        /// 
+        /// The wl_pointer.enter and wl_pointer.leave events are logical events
+        /// generated by the compositor and not the hardware. These events are
+        /// also grouped by a wl_pointer.frame. When a pointer moves from one
+        /// surface to another, a compositor should group the
+        /// wl_pointer.leave event within the same wl_pointer.frame.
+        /// However, a client must not rely on wl_pointer.leave and
+        /// wl_pointer.enter being in the same wl_pointer.frame.
+        /// Compositor-specific policies may require the wl_pointer.leave and
+        /// wl_pointer.enter event being split across multiple wl_pointer.frame
+        /// groups.
+        /// </para>
+        /// </summary>
+        public delegate void FrameHandler(WlPointer wlPointer);
+        /// <summary>
+        /// axis source event
+        /// <para>
+        /// Source information for scroll and other axes.
+        /// 
+        /// This event does not occur on its own. It is sent before a
+        /// wl_pointer.frame event and carries the source information for
+        /// all events within that frame.
+        /// 
+        /// The source specifies how this event was generated. If the source is
+        /// wl_pointer.axis_source.finger, a wl_pointer.axis_stop event will be
+        /// sent when the user lifts the finger off the device.
+        /// 
+        /// If the source is wl_pointer.axis_source.wheel,
+        /// wl_pointer.axis_source.wheel_tilt or
+        /// wl_pointer.axis_source.continuous, a wl_pointer.axis_stop event may
+        /// or may not be sent. Whether a compositor sends an axis_stop event
+        /// for these sources is hardware-specific and implementation-dependent;
+        /// clients must not rely on receiving an axis_stop event for these
+        /// scroll sources and should treat scroll sequences from these scroll
+        /// sources as unterminated by default.
+        /// 
+        /// This event is optional. If the source is unknown for a particular
+        /// axis event sequence, no event is sent.
+        /// Only one wl_pointer.axis_source event is permitted per frame.
+        /// 
+        /// The order of wl_pointer.axis_discrete and wl_pointer.axis_source is
+        /// not guaranteed.
+        /// </para>
+        /// </summary>
+        /// <param name="axisSource">source of the axis event</param>
+        public delegate void AxisSourceHandler(WlPointer wlPointer, AxisSourceEnum axisSource);
+        /// <summary>
+        /// axis stop event
+        /// <para>
+        /// Stop notification for scroll and other axes.
+        /// 
+        /// For some wl_pointer.axis_source types, a wl_pointer.axis_stop event
+        /// is sent to notify a client that the axis sequence has terminated.
+        /// This enables the client to implement kinetic scrolling.
+        /// See the wl_pointer.axis_source documentation for information on when
+        /// this event may be generated.
+        /// 
+        /// Any wl_pointer.axis events with the same axis_source after this
+        /// event should be considered as the start of a new axis motion.
+        /// 
+        /// The timestamp is to be interpreted identical to the timestamp in the
+        /// wl_pointer.axis event. The timestamp value may be the same as a
+        /// preceding wl_pointer.axis event.
+        /// </para>
+        /// </summary>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="axis">the axis stopped with this event</param>
+        public delegate void AxisStopHandler(WlPointer wlPointer, uint time, AxisEnum axis);
+        /// <summary>
+        /// axis click event
+        /// <para>
+        /// Discrete step information for scroll and other axes.
+        /// 
+        /// This event carries the axis value of the wl_pointer.axis event in
+        /// discrete steps (e.g. mouse wheel clicks).
+        /// 
+        /// This event does not occur on its own, it is coupled with a
+        /// wl_pointer.axis event that represents this axis value on a
+        /// continuous scale. The protocol guarantees that each axis_discrete
+        /// event is always followed by exactly one axis event with the same
+        /// axis number within the same wl_pointer.frame. Note that the protocol
+        /// allows for other events to occur between the axis_discrete and
+        /// its coupled axis event, including other axis_discrete or axis
+        /// events.
+        /// 
+        /// This event is optional; continuous scrolling devices
+        /// like two-finger scrolling on touchpads do not have discrete
+        /// steps and do not generate this event.
+        /// 
+        /// The discrete value carries the directional information. e.g. a value
+        /// of -2 is two steps towards the negative direction of this axis.
+        /// 
+        /// The axis number is identical to the axis number in the associated
+        /// axis event.
+        /// 
+        /// The order of wl_pointer.axis_discrete and wl_pointer.axis_source is
+        /// not guaranteed.
+        /// </para>
+        /// </summary>
+        /// <param name="axis">axis type</param>
+        /// <param name="discrete">number of steps</param>
+        public delegate void AxisDiscreteHandler(WlPointer wlPointer, AxisEnum axis, int discrete);
+        public event EnterHandler Enter;
+        public event LeaveHandler Leave;
+        public event MotionHandler Motion;
+        public event ButtonHandler Button;
+        public event AxisHandler Axis;
+        public event FrameHandler Frame;
+        public event AxisSourceHandler AxisSource;
+        public event AxisStopHandler AxisStop;
+        public event AxisDiscreteHandler AxisDiscrete;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -3490,28 +3261,14 @@ namespace WaylandNET.Client.Protocol
                         var surface = (WlSurface)arguments[1];
                         var surfaceX = (double)arguments[2];
                         var surfaceY = (double)arguments[3];
-                        if (Listener != null)
-                        {
-                            Listener.Enter(this, serial, surface, surfaceX, surfaceY);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Enter?.Invoke(this, serial, surface, surfaceX, surfaceY);
                         break;
                     }
                 case EventOpcode.Leave:
                     {
                         var serial = (uint)arguments[0];
                         var surface = (WlSurface)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.Leave(this, serial, surface);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Leave?.Invoke(this, serial, surface);
                         break;
                     }
                 case EventOpcode.Motion:
@@ -3519,14 +3276,7 @@ namespace WaylandNET.Client.Protocol
                         var time = (uint)arguments[0];
                         var surfaceX = (double)arguments[1];
                         var surfaceY = (double)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Motion(this, time, surfaceX, surfaceY);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Motion?.Invoke(this, time, surfaceX, surfaceY);
                         break;
                     }
                 case EventOpcode.Button:
@@ -3535,82 +3285,40 @@ namespace WaylandNET.Client.Protocol
                         var time = (uint)arguments[1];
                         var button = (uint)arguments[2];
                         var state = (ButtonState)(uint)arguments[3];
-                        if (Listener != null)
-                        {
-                            Listener.Button(this, serial, time, button, state);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Button?.Invoke(this, serial, time, button, state);
                         break;
                     }
                 case EventOpcode.Axis:
                     {
                         var time = (uint)arguments[0];
-                        var axis = (Axis)(uint)arguments[1];
+                        var axis = (AxisEnum)(uint)arguments[1];
                         var value = (double)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Axis(this, time, axis, value);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Axis?.Invoke(this, time, axis, value);
                         break;
                     }
                 case EventOpcode.Frame:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Frame(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Frame?.Invoke(this);
                         break;
                     }
                 case EventOpcode.AxisSource:
                     {
-                        var axisSource = (AxisSource)(uint)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.AxisSource(this, axisSource);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        var axisSource = (AxisSourceEnum)(uint)arguments[0];
+                        AxisSource?.Invoke(this, axisSource);
                         break;
                     }
                 case EventOpcode.AxisStop:
                     {
                         var time = (uint)arguments[0];
-                        var axis = (Axis)(uint)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.AxisStop(this, time, axis);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        var axis = (AxisEnum)(uint)arguments[1];
+                        AxisStop?.Invoke(this, time, axis);
                         break;
                     }
                 case EventOpcode.AxisDiscrete:
                     {
-                        var axis = (Axis)(uint)arguments[0];
+                        var axis = (AxisEnum)(uint)arguments[0];
                         var discrete = (int)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.AxisDiscrete(this, axis, discrete);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        AxisDiscrete?.Invoke(this, axis, discrete);
                         break;
                     }
                 default:
@@ -3713,7 +3421,7 @@ namespace WaylandNET.Client.Protocol
         /// Describes the axis types of scroll events.
         /// </para>
         /// </summary>
-        public enum Axis : int
+        public enum AxisEnum : int
         {
             VerticalScroll = 0,
             HorizontalScroll = 1,
@@ -3739,7 +3447,7 @@ namespace WaylandNET.Client.Protocol
         /// (usually sideways) tilt of the wheel.
         /// </para>
         /// </summary>
-        public enum AxisSource : int
+        public enum AxisSourceEnum : int
         {
             Wheel = 0,
             Finger = 1,
@@ -3832,94 +3540,96 @@ namespace WaylandNET.Client.Protocol
             Modifiers,
             RepeatInfo,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// keyboard mapping
-            /// <para>
-            /// This event provides a file descriptor to the client which can be
-            /// memory-mapped to provide a keyboard mapping description.
-            /// 
-            /// From version 7 onwards, the fd must be mapped with MAP_PRIVATE by
-            /// the recipient, as MAP_SHARED may fail.
-            /// </para>
-            /// </summary>
-            /// <param name="format">keymap format</param>
-            /// <param name="fd">keymap file descriptor</param>
-            /// <param name="size">keymap size, in bytes</param>
-            void Keymap(WlKeyboard wlKeyboard, KeymapFormat format, IntPtr fd, uint size);
-            /// <summary>
-            /// enter event
-            /// <para>
-            /// Notification that this seat's keyboard focus is on a certain
-            /// surface.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the enter event</param>
-            /// <param name="surface">surface gaining keyboard focus</param>
-            /// <param name="keys">the currently pressed keys</param>
-            void Enter(WlKeyboard wlKeyboard, uint serial, WlSurface surface, byte[] keys);
-            /// <summary>
-            /// leave event
-            /// <para>
-            /// Notification that this seat's keyboard focus is no longer on
-            /// a certain surface.
-            /// 
-            /// The leave notification is sent before the enter notification
-            /// for the new focus.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the leave event</param>
-            /// <param name="surface">surface that lost keyboard focus</param>
-            void Leave(WlKeyboard wlKeyboard, uint serial, WlSurface surface);
-            /// <summary>
-            /// key event
-            /// <para>
-            /// A key was pressed or released.
-            /// The time argument is a timestamp with millisecond
-            /// granularity, with an undefined base.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the key event</param>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="key">key that produced the event</param>
-            /// <param name="state">physical state of the key</param>
-            void Key(WlKeyboard wlKeyboard, uint serial, uint time, uint key, KeyState state);
-            /// <summary>
-            /// modifier and group state
-            /// <para>
-            /// Notifies clients that the modifier and/or group state has
-            /// changed, and it should update its local state.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the modifiers event</param>
-            /// <param name="modsDepressed">depressed modifiers</param>
-            /// <param name="modsLatched">latched modifiers</param>
-            /// <param name="modsLocked">locked modifiers</param>
-            /// <param name="group">keyboard layout</param>
-            void Modifiers(WlKeyboard wlKeyboard, uint serial, uint modsDepressed, uint modsLatched, uint modsLocked, uint group);
-            /// <summary>
-            /// repeat rate and delay
-            /// <para>
-            /// Informs the client about the keyboard's repeat rate and delay.
-            /// 
-            /// This event is sent as soon as the wl_keyboard object has been created,
-            /// and is guaranteed to be received by the client before any key press
-            /// event.
-            /// 
-            /// Negative values for either rate or delay are illegal. A rate of zero
-            /// will disable any repeating (regardless of the value of delay).
-            /// 
-            /// This event can be sent later on as well with a new value if necessary,
-            /// so clients should continue listening for the event past the creation
-            /// of wl_keyboard.
-            /// </para>
-            /// </summary>
-            /// <param name="rate">the rate of repeating keys in characters per second</param>
-            /// <param name="delay">delay in milliseconds since key down until repeating starts</param>
-            void RepeatInfo(WlKeyboard wlKeyboard, int rate, int delay);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// keyboard mapping
+        /// <para>
+        /// This event provides a file descriptor to the client which can be
+        /// memory-mapped to provide a keyboard mapping description.
+        /// 
+        /// From version 7 onwards, the fd must be mapped with MAP_PRIVATE by
+        /// the recipient, as MAP_SHARED may fail.
+        /// </para>
+        /// </summary>
+        /// <param name="format">keymap format</param>
+        /// <param name="fd">keymap file descriptor</param>
+        /// <param name="size">keymap size, in bytes</param>
+        public delegate void KeymapHandler(WlKeyboard wlKeyboard, KeymapFormat format, IntPtr fd, uint size);
+        /// <summary>
+        /// enter event
+        /// <para>
+        /// Notification that this seat's keyboard focus is on a certain
+        /// surface.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the enter event</param>
+        /// <param name="surface">surface gaining keyboard focus</param>
+        /// <param name="keys">the currently pressed keys</param>
+        public delegate void EnterHandler(WlKeyboard wlKeyboard, uint serial, WlSurface surface, byte[] keys);
+        /// <summary>
+        /// leave event
+        /// <para>
+        /// Notification that this seat's keyboard focus is no longer on
+        /// a certain surface.
+        /// 
+        /// The leave notification is sent before the enter notification
+        /// for the new focus.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the leave event</param>
+        /// <param name="surface">surface that lost keyboard focus</param>
+        public delegate void LeaveHandler(WlKeyboard wlKeyboard, uint serial, WlSurface surface);
+        /// <summary>
+        /// key event
+        /// <para>
+        /// A key was pressed or released.
+        /// The time argument is a timestamp with millisecond
+        /// granularity, with an undefined base.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the key event</param>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="key">key that produced the event</param>
+        /// <param name="state">physical state of the key</param>
+        public delegate void KeyHandler(WlKeyboard wlKeyboard, uint serial, uint time, uint key, KeyState state);
+        /// <summary>
+        /// modifier and group state
+        /// <para>
+        /// Notifies clients that the modifier and/or group state has
+        /// changed, and it should update its local state.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the modifiers event</param>
+        /// <param name="modsDepressed">depressed modifiers</param>
+        /// <param name="modsLatched">latched modifiers</param>
+        /// <param name="modsLocked">locked modifiers</param>
+        /// <param name="group">keyboard layout</param>
+        public delegate void ModifiersHandler(WlKeyboard wlKeyboard, uint serial, uint modsDepressed, uint modsLatched, uint modsLocked, uint group);
+        /// <summary>
+        /// repeat rate and delay
+        /// <para>
+        /// Informs the client about the keyboard's repeat rate and delay.
+        /// 
+        /// This event is sent as soon as the wl_keyboard object has been created,
+        /// and is guaranteed to be received by the client before any key press
+        /// event.
+        /// 
+        /// Negative values for either rate or delay are illegal. A rate of zero
+        /// will disable any repeating (regardless of the value of delay).
+        /// 
+        /// This event can be sent later on as well with a new value if necessary,
+        /// so clients should continue listening for the event past the creation
+        /// of wl_keyboard.
+        /// </para>
+        /// </summary>
+        /// <param name="rate">the rate of repeating keys in characters per second</param>
+        /// <param name="delay">delay in milliseconds since key down until repeating starts</param>
+        public delegate void RepeatInfoHandler(WlKeyboard wlKeyboard, int rate, int delay);
+        public event KeymapHandler Keymap;
+        public event EnterHandler Enter;
+        public event LeaveHandler Leave;
+        public event KeyHandler Key;
+        public event ModifiersHandler Modifiers;
+        public event RepeatInfoHandler RepeatInfo;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -3929,14 +3639,7 @@ namespace WaylandNET.Client.Protocol
                         var format = (KeymapFormat)(uint)arguments[0];
                         var fd = (IntPtr)arguments[1];
                         var size = (uint)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Keymap(this, format, fd, size);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Keymap?.Invoke(this, format, fd, size);
                         break;
                     }
                 case EventOpcode.Enter:
@@ -3944,28 +3647,14 @@ namespace WaylandNET.Client.Protocol
                         var serial = (uint)arguments[0];
                         var surface = (WlSurface)arguments[1];
                         var keys = (byte[])arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Enter(this, serial, surface, keys);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Enter?.Invoke(this, serial, surface, keys);
                         break;
                     }
                 case EventOpcode.Leave:
                     {
                         var serial = (uint)arguments[0];
                         var surface = (WlSurface)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.Leave(this, serial, surface);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Leave?.Invoke(this, serial, surface);
                         break;
                     }
                 case EventOpcode.Key:
@@ -3974,14 +3663,7 @@ namespace WaylandNET.Client.Protocol
                         var time = (uint)arguments[1];
                         var key = (uint)arguments[2];
                         var state = (KeyState)(uint)arguments[3];
-                        if (Listener != null)
-                        {
-                            Listener.Key(this, serial, time, key, state);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Key?.Invoke(this, serial, time, key, state);
                         break;
                     }
                 case EventOpcode.Modifiers:
@@ -3991,28 +3673,14 @@ namespace WaylandNET.Client.Protocol
                         var modsLatched = (uint)arguments[2];
                         var modsLocked = (uint)arguments[3];
                         var group = (uint)arguments[4];
-                        if (Listener != null)
-                        {
-                            Listener.Modifiers(this, serial, modsDepressed, modsLatched, modsLocked, group);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Modifiers?.Invoke(this, serial, modsDepressed, modsLatched, modsLocked, group);
                         break;
                     }
                 case EventOpcode.RepeatInfo:
                     {
                         var rate = (int)arguments[0];
                         var delay = (int)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.RepeatInfo(this, rate, delay);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        RepeatInfo?.Invoke(this, rate, delay);
                         break;
                     }
                 default:
@@ -4141,140 +3809,143 @@ namespace WaylandNET.Client.Protocol
             Shape,
             Orientation,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// touch down event and beginning of a touch sequence
-            /// <para>
-            /// A new touch point has appeared on the surface. This touch point is
-            /// assigned a unique ID. Future events from this touch point reference
-            /// this ID. The ID ceases to be valid after a touch up event and may be
-            /// reused in the future.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the touch down event</param>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="surface">surface touched</param>
-            /// <param name="id">the unique ID of this touch point</param>
-            /// <param name="x">surface-local x coordinate</param>
-            /// <param name="y">surface-local y coordinate</param>
-            void Down(WlTouch wlTouch, uint serial, uint time, WlSurface surface, int id, double x, double y);
-            /// <summary>
-            /// end of a touch event sequence
-            /// <para>
-            /// The touch point has disappeared. No further events will be sent for
-            /// this touch point and the touch point's ID is released and may be
-            /// reused in a future touch down event.
-            /// </para>
-            /// </summary>
-            /// <param name="serial">serial number of the touch up event</param>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="id">the unique ID of this touch point</param>
-            void Up(WlTouch wlTouch, uint serial, uint time, int id);
-            /// <summary>
-            /// update of touch point coordinates
-            /// <para>
-            /// A touch point has changed coordinates.
-            /// </para>
-            /// </summary>
-            /// <param name="time">timestamp with millisecond granularity</param>
-            /// <param name="id">the unique ID of this touch point</param>
-            /// <param name="x">surface-local x coordinate</param>
-            /// <param name="y">surface-local y coordinate</param>
-            void Motion(WlTouch wlTouch, uint time, int id, double x, double y);
-            /// <summary>
-            /// end of touch frame event
-            /// <para>
-            /// Indicates the end of a set of events that logically belong together.
-            /// A client is expected to accumulate the data in all events within the
-            /// frame before proceeding.
-            /// 
-            /// A wl_touch.frame terminates at least one event but otherwise no
-            /// guarantee is provided about the set of events within a frame. A client
-            /// must assume that any state not updated in a frame is unchanged from the
-            /// previously known state.
-            /// </para>
-            /// </summary>
-            void Frame(WlTouch wlTouch);
-            /// <summary>
-            /// touch session cancelled
-            /// <para>
-            /// Sent if the compositor decides the touch stream is a global
-            /// gesture. No further events are sent to the clients from that
-            /// particular gesture. Touch cancellation applies to all touch points
-            /// currently active on this client's surface. The client is
-            /// responsible for finalizing the touch points, future touch points on
-            /// this surface may reuse the touch point ID.
-            /// </para>
-            /// </summary>
-            void Cancel(WlTouch wlTouch);
-            /// <summary>
-            /// update shape of touch point
-            /// <para>
-            /// Sent when a touchpoint has changed its shape.
-            /// 
-            /// This event does not occur on its own. It is sent before a
-            /// wl_touch.frame event and carries the new shape information for
-            /// any previously reported, or new touch points of that frame.
-            /// 
-            /// Other events describing the touch point such as wl_touch.down,
-            /// wl_touch.motion or wl_touch.orientation may be sent within the
-            /// same wl_touch.frame. A client should treat these events as a single
-            /// logical touch point update. The order of wl_touch.shape,
-            /// wl_touch.orientation and wl_touch.motion is not guaranteed.
-            /// A wl_touch.down event is guaranteed to occur before the first
-            /// wl_touch.shape event for this touch ID but both events may occur within
-            /// the same wl_touch.frame.
-            /// 
-            /// A touchpoint shape is approximated by an ellipse through the major and
-            /// minor axis length. The major axis length describes the longer diameter
-            /// of the ellipse, while the minor axis length describes the shorter
-            /// diameter. Major and minor are orthogonal and both are specified in
-            /// surface-local coordinates. The center of the ellipse is always at the
-            /// touchpoint location as reported by wl_touch.down or wl_touch.move.
-            /// 
-            /// This event is only sent by the compositor if the touch device supports
-            /// shape reports. The client has to make reasonable assumptions about the
-            /// shape if it did not receive this event.
-            /// </para>
-            /// </summary>
-            /// <param name="id">the unique ID of this touch point</param>
-            /// <param name="major">length of the major axis in surface-local coordinates</param>
-            /// <param name="minor">length of the minor axis in surface-local coordinates</param>
-            void Shape(WlTouch wlTouch, int id, double major, double minor);
-            /// <summary>
-            /// update orientation of touch point
-            /// <para>
-            /// Sent when a touchpoint has changed its orientation.
-            /// 
-            /// This event does not occur on its own. It is sent before a
-            /// wl_touch.frame event and carries the new shape information for
-            /// any previously reported, or new touch points of that frame.
-            /// 
-            /// Other events describing the touch point such as wl_touch.down,
-            /// wl_touch.motion or wl_touch.shape may be sent within the
-            /// same wl_touch.frame. A client should treat these events as a single
-            /// logical touch point update. The order of wl_touch.shape,
-            /// wl_touch.orientation and wl_touch.motion is not guaranteed.
-            /// A wl_touch.down event is guaranteed to occur before the first
-            /// wl_touch.orientation event for this touch ID but both events may occur
-            /// within the same wl_touch.frame.
-            /// 
-            /// The orientation describes the clockwise angle of a touchpoint's major
-            /// axis to the positive surface y-axis and is normalized to the -180 to
-            /// +180 degree range. The granularity of orientation depends on the touch
-            /// device, some devices only support binary rotation values between 0 and
-            /// 90 degrees.
-            /// 
-            /// This event is only sent by the compositor if the touch device supports
-            /// orientation reports.
-            /// </para>
-            /// </summary>
-            /// <param name="id">the unique ID of this touch point</param>
-            /// <param name="orientation">angle between major axis and positive surface y-axis in degrees</param>
-            void Orientation(WlTouch wlTouch, int id, double orientation);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// touch down event and beginning of a touch sequence
+        /// <para>
+        /// A new touch point has appeared on the surface. This touch point is
+        /// assigned a unique ID. Future events from this touch point reference
+        /// this ID. The ID ceases to be valid after a touch up event and may be
+        /// reused in the future.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the touch down event</param>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="surface">surface touched</param>
+        /// <param name="id">the unique ID of this touch point</param>
+        /// <param name="x">surface-local x coordinate</param>
+        /// <param name="y">surface-local y coordinate</param>
+        public delegate void DownHandler(WlTouch wlTouch, uint serial, uint time, WlSurface surface, int id, double x, double y);
+        /// <summary>
+        /// end of a touch event sequence
+        /// <para>
+        /// The touch point has disappeared. No further events will be sent for
+        /// this touch point and the touch point's ID is released and may be
+        /// reused in a future touch down event.
+        /// </para>
+        /// </summary>
+        /// <param name="serial">serial number of the touch up event</param>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="id">the unique ID of this touch point</param>
+        public delegate void UpHandler(WlTouch wlTouch, uint serial, uint time, int id);
+        /// <summary>
+        /// update of touch point coordinates
+        /// <para>
+        /// A touch point has changed coordinates.
+        /// </para>
+        /// </summary>
+        /// <param name="time">timestamp with millisecond granularity</param>
+        /// <param name="id">the unique ID of this touch point</param>
+        /// <param name="x">surface-local x coordinate</param>
+        /// <param name="y">surface-local y coordinate</param>
+        public delegate void MotionHandler(WlTouch wlTouch, uint time, int id, double x, double y);
+        /// <summary>
+        /// end of touch frame event
+        /// <para>
+        /// Indicates the end of a set of events that logically belong together.
+        /// A client is expected to accumulate the data in all events within the
+        /// frame before proceeding.
+        /// 
+        /// A wl_touch.frame terminates at least one event but otherwise no
+        /// guarantee is provided about the set of events within a frame. A client
+        /// must assume that any state not updated in a frame is unchanged from the
+        /// previously known state.
+        /// </para>
+        /// </summary>
+        public delegate void FrameHandler(WlTouch wlTouch);
+        /// <summary>
+        /// touch session cancelled
+        /// <para>
+        /// Sent if the compositor decides the touch stream is a global
+        /// gesture. No further events are sent to the clients from that
+        /// particular gesture. Touch cancellation applies to all touch points
+        /// currently active on this client's surface. The client is
+        /// responsible for finalizing the touch points, future touch points on
+        /// this surface may reuse the touch point ID.
+        /// </para>
+        /// </summary>
+        public delegate void CancelHandler(WlTouch wlTouch);
+        /// <summary>
+        /// update shape of touch point
+        /// <para>
+        /// Sent when a touchpoint has changed its shape.
+        /// 
+        /// This event does not occur on its own. It is sent before a
+        /// wl_touch.frame event and carries the new shape information for
+        /// any previously reported, or new touch points of that frame.
+        /// 
+        /// Other events describing the touch point such as wl_touch.down,
+        /// wl_touch.motion or wl_touch.orientation may be sent within the
+        /// same wl_touch.frame. A client should treat these events as a single
+        /// logical touch point update. The order of wl_touch.shape,
+        /// wl_touch.orientation and wl_touch.motion is not guaranteed.
+        /// A wl_touch.down event is guaranteed to occur before the first
+        /// wl_touch.shape event for this touch ID but both events may occur within
+        /// the same wl_touch.frame.
+        /// 
+        /// A touchpoint shape is approximated by an ellipse through the major and
+        /// minor axis length. The major axis length describes the longer diameter
+        /// of the ellipse, while the minor axis length describes the shorter
+        /// diameter. Major and minor are orthogonal and both are specified in
+        /// surface-local coordinates. The center of the ellipse is always at the
+        /// touchpoint location as reported by wl_touch.down or wl_touch.move.
+        /// 
+        /// This event is only sent by the compositor if the touch device supports
+        /// shape reports. The client has to make reasonable assumptions about the
+        /// shape if it did not receive this event.
+        /// </para>
+        /// </summary>
+        /// <param name="id">the unique ID of this touch point</param>
+        /// <param name="major">length of the major axis in surface-local coordinates</param>
+        /// <param name="minor">length of the minor axis in surface-local coordinates</param>
+        public delegate void ShapeHandler(WlTouch wlTouch, int id, double major, double minor);
+        /// <summary>
+        /// update orientation of touch point
+        /// <para>
+        /// Sent when a touchpoint has changed its orientation.
+        /// 
+        /// This event does not occur on its own. It is sent before a
+        /// wl_touch.frame event and carries the new shape information for
+        /// any previously reported, or new touch points of that frame.
+        /// 
+        /// Other events describing the touch point such as wl_touch.down,
+        /// wl_touch.motion or wl_touch.shape may be sent within the
+        /// same wl_touch.frame. A client should treat these events as a single
+        /// logical touch point update. The order of wl_touch.shape,
+        /// wl_touch.orientation and wl_touch.motion is not guaranteed.
+        /// A wl_touch.down event is guaranteed to occur before the first
+        /// wl_touch.orientation event for this touch ID but both events may occur
+        /// within the same wl_touch.frame.
+        /// 
+        /// The orientation describes the clockwise angle of a touchpoint's major
+        /// axis to the positive surface y-axis and is normalized to the -180 to
+        /// +180 degree range. The granularity of orientation depends on the touch
+        /// device, some devices only support binary rotation values between 0 and
+        /// 90 degrees.
+        /// 
+        /// This event is only sent by the compositor if the touch device supports
+        /// orientation reports.
+        /// </para>
+        /// </summary>
+        /// <param name="id">the unique ID of this touch point</param>
+        /// <param name="orientation">angle between major axis and positive surface y-axis in degrees</param>
+        public delegate void OrientationHandler(WlTouch wlTouch, int id, double orientation);
+        public event DownHandler Down;
+        public event UpHandler Up;
+        public event MotionHandler Motion;
+        public event FrameHandler Frame;
+        public event CancelHandler Cancel;
+        public event ShapeHandler Shape;
+        public event OrientationHandler Orientation;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -4287,14 +3958,7 @@ namespace WaylandNET.Client.Protocol
                         var id = (int)arguments[3];
                         var x = (double)arguments[4];
                         var y = (double)arguments[5];
-                        if (Listener != null)
-                        {
-                            Listener.Down(this, serial, time, surface, id, x, y);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Down?.Invoke(this, serial, time, surface, id, x, y);
                         break;
                     }
                 case EventOpcode.Up:
@@ -4302,14 +3966,7 @@ namespace WaylandNET.Client.Protocol
                         var serial = (uint)arguments[0];
                         var time = (uint)arguments[1];
                         var id = (int)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Up(this, serial, time, id);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Up?.Invoke(this, serial, time, id);
                         break;
                     }
                 case EventOpcode.Motion:
@@ -4318,38 +3975,17 @@ namespace WaylandNET.Client.Protocol
                         var id = (int)arguments[1];
                         var x = (double)arguments[2];
                         var y = (double)arguments[3];
-                        if (Listener != null)
-                        {
-                            Listener.Motion(this, time, id, x, y);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Motion?.Invoke(this, time, id, x, y);
                         break;
                     }
                 case EventOpcode.Frame:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Frame(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Frame?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Cancel:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Cancel(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Cancel?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Shape:
@@ -4357,28 +3993,14 @@ namespace WaylandNET.Client.Protocol
                         var id = (int)arguments[0];
                         var major = (double)arguments[1];
                         var minor = (double)arguments[2];
-                        if (Listener != null)
-                        {
-                            Listener.Shape(this, id, major, minor);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Shape?.Invoke(this, id, major, minor);
                         break;
                     }
                 case EventOpcode.Orientation:
                     {
                         var id = (int)arguments[0];
                         var orientation = (double)arguments[1];
-                        if (Listener != null)
-                        {
-                            Listener.Orientation(this, id, orientation);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Orientation?.Invoke(this, id, orientation);
                         break;
                     }
                 default:
@@ -4483,109 +4105,109 @@ namespace WaylandNET.Client.Protocol
             Done,
             Scale,
         }
-        public interface IListener
-        {
-            /// <summary>
-            /// properties of the output
-            /// <para>
-            /// The geometry event describes geometric properties of the output.
-            /// The event is sent when binding to the output object and whenever
-            /// any of the properties change.
-            /// 
-            /// The physical size can be set to zero if it doesn't make sense for this
-            /// output (e.g. for projectors or virtual outputs).
-            /// 
-            /// Note: wl_output only advertises partial information about the output
-            /// position and identification. Some compositors, for instance those not
-            /// implementing a desktop-style output layout or those exposing virtual
-            /// outputs, might fake this information. Instead of using x and y, clients
-            /// should use xdg_output.logical_position. Instead of using make and model,
-            /// clients should use xdg_output.name and xdg_output.description.
-            /// </para>
-            /// </summary>
-            /// <param name="x">x position within the global compositor space</param>
-            /// <param name="y">y position within the global compositor space</param>
-            /// <param name="physicalWidth">width in millimeters of the output</param>
-            /// <param name="physicalHeight">height in millimeters of the output</param>
-            /// <param name="subpixel">subpixel orientation of the output</param>
-            /// <param name="make">textual description of the manufacturer</param>
-            /// <param name="model">textual description of the model</param>
-            /// <param name="transform">transform that maps framebuffer to output</param>
-            void Geometry(WlOutput wlOutput, int x, int y, int physicalWidth, int physicalHeight, Subpixel subpixel, string make, string model, Transform transform);
-            /// <summary>
-            /// advertise available modes for the output
-            /// <para>
-            /// The mode event describes an available mode for the output.
-            /// 
-            /// The event is sent when binding to the output object and there
-            /// will always be one mode, the current mode.  The event is sent
-            /// again if an output changes mode, for the mode that is now
-            /// current.  In other words, the current mode is always the last
-            /// mode that was received with the current flag set.
-            /// 
-            /// The size of a mode is given in physical hardware units of
-            /// the output device. This is not necessarily the same as
-            /// the output size in the global compositor space. For instance,
-            /// the output may be scaled, as described in wl_output.scale,
-            /// or transformed, as described in wl_output.transform. Clients
-            /// willing to retrieve the output size in the global compositor
-            /// space should use xdg_output.logical_size instead.
-            /// 
-            /// The vertical refresh rate can be set to zero if it doesn't make
-            /// sense for this output (e.g. for virtual outputs).
-            /// 
-            /// Clients should not use the refresh rate to schedule frames. Instead,
-            /// they should use the wl_surface.frame event or the presentation-time
-            /// protocol.
-            /// 
-            /// Note: this information is not always meaningful for all outputs. Some
-            /// compositors, such as those exposing virtual outputs, might fake the
-            /// refresh rate or the size.
-            /// </para>
-            /// </summary>
-            /// <param name="flags">bitfield of mode flags</param>
-            /// <param name="width">width of the mode in hardware units</param>
-            /// <param name="height">height of the mode in hardware units</param>
-            /// <param name="refresh">vertical refresh rate in mHz</param>
-            void Mode(WlOutput wlOutput, Mode flags, int width, int height, int refresh);
-            /// <summary>
-            /// sent all information about output
-            /// <para>
-            /// This event is sent after all other properties have been
-            /// sent after binding to the output object and after any
-            /// other property changes done after that. This allows
-            /// changes to the output properties to be seen as
-            /// atomic, even if they happen via multiple events.
-            /// </para>
-            /// </summary>
-            void Done(WlOutput wlOutput);
-            /// <summary>
-            /// output scaling properties
-            /// <para>
-            /// This event contains scaling geometry information
-            /// that is not in the geometry event. It may be sent after
-            /// binding the output object or if the output scale changes
-            /// later. If it is not sent, the client should assume a
-            /// scale of 1.
-            /// 
-            /// A scale larger than 1 means that the compositor will
-            /// automatically scale surface buffers by this amount
-            /// when rendering. This is used for very high resolution
-            /// displays where applications rendering at the native
-            /// resolution would be too small to be legible.
-            /// 
-            /// It is intended that scaling aware clients track the
-            /// current output of a surface, and if it is on a scaled
-            /// output it should use wl_surface.set_buffer_scale with
-            /// the scale of the output. That way the compositor can
-            /// avoid scaling the surface, and the client can supply
-            /// a higher detail image.
-            /// </para>
-            /// </summary>
-            /// <param name="factor">scaling factor of output</param>
-            void Scale(WlOutput wlOutput, int factor);
-        }
-        public IListener Listener { get; set; }
+        /// <summary>
+        /// properties of the output
+        /// <para>
+        /// The geometry event describes geometric properties of the output.
+        /// The event is sent when binding to the output object and whenever
+        /// any of the properties change.
+        /// 
+        /// The physical size can be set to zero if it doesn't make sense for this
+        /// output (e.g. for projectors or virtual outputs).
+        /// 
+        /// Note: wl_output only advertises partial information about the output
+        /// position and identification. Some compositors, for instance those not
+        /// implementing a desktop-style output layout or those exposing virtual
+        /// outputs, might fake this information. Instead of using x and y, clients
+        /// should use xdg_output.logical_position. Instead of using make and model,
+        /// clients should use xdg_output.name and xdg_output.description.
+        /// </para>
+        /// </summary>
+        /// <param name="x">x position within the global compositor space</param>
+        /// <param name="y">y position within the global compositor space</param>
+        /// <param name="physicalWidth">width in millimeters of the output</param>
+        /// <param name="physicalHeight">height in millimeters of the output</param>
+        /// <param name="subpixel">subpixel orientation of the output</param>
+        /// <param name="make">textual description of the manufacturer</param>
+        /// <param name="model">textual description of the model</param>
+        /// <param name="transform">transform that maps framebuffer to output</param>
+        public delegate void GeometryHandler(WlOutput wlOutput, int x, int y, int physicalWidth, int physicalHeight, Subpixel subpixel, string make, string model, Transform transform);
+        /// <summary>
+        /// advertise available modes for the output
+        /// <para>
+        /// The mode event describes an available mode for the output.
+        /// 
+        /// The event is sent when binding to the output object and there
+        /// will always be one mode, the current mode.  The event is sent
+        /// again if an output changes mode, for the mode that is now
+        /// current.  In other words, the current mode is always the last
+        /// mode that was received with the current flag set.
+        /// 
+        /// The size of a mode is given in physical hardware units of
+        /// the output device. This is not necessarily the same as
+        /// the output size in the global compositor space. For instance,
+        /// the output may be scaled, as described in wl_output.scale,
+        /// or transformed, as described in wl_output.transform. Clients
+        /// willing to retrieve the output size in the global compositor
+        /// space should use xdg_output.logical_size instead.
+        /// 
+        /// The vertical refresh rate can be set to zero if it doesn't make
+        /// sense for this output (e.g. for virtual outputs).
+        /// 
+        /// Clients should not use the refresh rate to schedule frames. Instead,
+        /// they should use the wl_surface.frame event or the presentation-time
+        /// protocol.
+        /// 
+        /// Note: this information is not always meaningful for all outputs. Some
+        /// compositors, such as those exposing virtual outputs, might fake the
+        /// refresh rate or the size.
+        /// </para>
+        /// </summary>
+        /// <param name="flags">bitfield of mode flags</param>
+        /// <param name="width">width of the mode in hardware units</param>
+        /// <param name="height">height of the mode in hardware units</param>
+        /// <param name="refresh">vertical refresh rate in mHz</param>
+        public delegate void ModeHandler(WlOutput wlOutput, ModeEnum flags, int width, int height, int refresh);
+        /// <summary>
+        /// sent all information about output
+        /// <para>
+        /// This event is sent after all other properties have been
+        /// sent after binding to the output object and after any
+        /// other property changes done after that. This allows
+        /// changes to the output properties to be seen as
+        /// atomic, even if they happen via multiple events.
+        /// </para>
+        /// </summary>
+        public delegate void DoneHandler(WlOutput wlOutput);
+        /// <summary>
+        /// output scaling properties
+        /// <para>
+        /// This event contains scaling geometry information
+        /// that is not in the geometry event. It may be sent after
+        /// binding the output object or if the output scale changes
+        /// later. If it is not sent, the client should assume a
+        /// scale of 1.
+        /// 
+        /// A scale larger than 1 means that the compositor will
+        /// automatically scale surface buffers by this amount
+        /// when rendering. This is used for very high resolution
+        /// displays where applications rendering at the native
+        /// resolution would be too small to be legible.
+        /// 
+        /// It is intended that scaling aware clients track the
+        /// current output of a surface, and if it is on a scaled
+        /// output it should use wl_surface.set_buffer_scale with
+        /// the scale of the output. That way the compositor can
+        /// avoid scaling the surface, and the client can supply
+        /// a higher detail image.
+        /// </para>
+        /// </summary>
+        /// <param name="factor">scaling factor of output</param>
+        public delegate void ScaleHandler(WlOutput wlOutput, int factor);
+        public event GeometryHandler Geometry;
+        public event ModeHandler Mode;
+        public event DoneHandler Done;
+        public event ScaleHandler Scale;
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -4600,55 +4222,27 @@ namespace WaylandNET.Client.Protocol
                         var make = (string)arguments[5];
                         var model = (string)arguments[6];
                         var transform = (Transform)(int)arguments[7];
-                        if (Listener != null)
-                        {
-                            Listener.Geometry(this, x, y, physicalWidth, physicalHeight, subpixel, make, model, transform);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Geometry?.Invoke(this, x, y, physicalWidth, physicalHeight, subpixel, make, model, transform);
                         break;
                     }
                 case EventOpcode.Mode:
                     {
-                        var flags = (Mode)(uint)arguments[0];
+                        var flags = (ModeEnum)(uint)arguments[0];
                         var width = (int)arguments[1];
                         var height = (int)arguments[2];
                         var refresh = (int)arguments[3];
-                        if (Listener != null)
-                        {
-                            Listener.Mode(this, flags, width, height, refresh);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Mode?.Invoke(this, flags, width, height, refresh);
                         break;
                     }
                 case EventOpcode.Done:
                     {
-                        if (Listener != null)
-                        {
-                            Listener.Done(this);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Done?.Invoke(this);
                         break;
                     }
                 case EventOpcode.Scale:
                     {
                         var factor = (int)arguments[0];
-                        if (Listener != null)
-                        {
-                            Listener.Scale(this, factor);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Warning: no listener on {this}");
-                        }
+                        Scale?.Invoke(this, factor);
                         break;
                     }
                 default:
@@ -4747,7 +4341,7 @@ namespace WaylandNET.Client.Protocol
         /// </para>
         /// </summary>
         [Flags]
-        public enum Mode : int
+        public enum ModeEnum : int
         {
             Current = 1,
             Preferred = 2,
@@ -4789,10 +4383,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -4887,10 +4477,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
@@ -5027,10 +4613,6 @@ namespace WaylandNET.Client.Protocol
         public enum EventOpcode : ushort
         {
         }
-        public interface IListener
-        {
-        }
-        public IListener Listener { get; set; }
         public override void Handle(ushort opcode, params object[] arguments)
         {
             switch ((EventOpcode)opcode)
