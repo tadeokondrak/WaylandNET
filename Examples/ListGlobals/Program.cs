@@ -1,4 +1,4 @@
-﻿using WaylandNET.Client;
+using WaylandNET.Client;
 
 using var conn = new WaylandClientConnection();
 var registry = conn.Display.GetRegistry();
