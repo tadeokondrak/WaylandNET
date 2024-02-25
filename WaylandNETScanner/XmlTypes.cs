@@ -128,5 +128,4 @@ namespace WaylandNETScanner
         [XmlAttribute("since")]
         public uint Since { get; set; }
     }
-
 }

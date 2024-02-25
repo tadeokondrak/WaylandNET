@@ -5,11 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
+using Microsoft.Extensions.CommandLineUtils;
 
 namespace WaylandNETScanner
 {
-    class Program
+    static class Program
     {
+        static bool internalMode;
+
         static string Recase(string input, bool initial)
         {
             StringBuilder sb = new StringBuilder();
@@ -202,7 +205,7 @@ namespace WaylandNETScanner
                     $"{PascalCase(@interface.Name)} {CamelCase(@interface.Name)}",
                 };
                 foreach (var argument in @event.Arguments)
-                    args.Add($"{TypeForArgument(@interface, argument, false)} "+
+                    args.Add($"{TypeForArgument(@interface, argument, false)} " +
                         $"{CamelCase(argument.Name)}");
                 gen.AppendLine($"public delegate void {name}Handler({String.Join(", ", args)});");
             }
@@ -444,20 +447,54 @@ namespace WaylandNETScanner
             using (gen.Block("namespace WaylandNET.Client.Protocol"))
             {
                 foreach (var @interface in protocol.Interfaces)
-                    GenerateInterface(gen, @interface);
+                {
+                    if (ShouldGenerateInterface(@interface.Name))
+                        GenerateInterface(gen, @interface);
+                }
             }
         }
 
-        static void Main(string[] args)
+        static void Run(string inPath)
         {
             var serializer = new XmlSerializer(typeof(Protocol));
-            using (var reader = new FileStream(args[0], FileMode.Open, FileAccess.Read))
+            using (var reader = new FileStream(inPath, FileMode.Open, FileAccess.Read))
             {
                 var gen = new CodeGenerator();
                 var protocol = (Protocol)serializer.Deserialize(reader);
                 GenerateProtocol(gen, protocol);
                 Console.Write(gen.ToString());
             }
+        }
+
+        static bool ShouldGenerateInterface(string @interface)
+        {
+            bool interfaceIsSpecial = @interface is "wl_display" or "wl_registry" or "wl_callback";
+            return internalMode == interfaceIsSpecial;
+        }
+
+        static void Main(string[] args)
+        {
+            var cmd = new CommandLineApplication(throwOnUnexpectedArg: false)
+            {
+                Name = "WaylandNETScanner",
+            };
+            var internalArg = cmd.Option("--internal", "Enable if generating code for WaylandNET itself", CommandOptionType.NoValue);
+            cmd.OnExecute(() =>
+            {
+                internalMode = internalArg.HasValue();
+
+                if (cmd.RemainingArguments.Count == 0)
+                {
+                    cmd.Error.WriteLine("No files provided");
+                    return 1;
+                }
+
+                foreach (var inPath in cmd.RemainingArguments)
+                    Run(inPath);
+                return 0;
+            });
+            cmd.HelpOption("-h | --help");
+            cmd.Execute(args);
         }
     }
 }
