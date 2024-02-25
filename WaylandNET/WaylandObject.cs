@@ -19,8 +19,6 @@ namespace WaylandNET
         protected void Die()
         {
             IsAlive = false;
-            Connection[Id] = null;
-            Connection.DeallocateId(Id);
         }
 
         protected WaylandObject(string @interface, uint id, uint version, WaylandConnection connection)

@@ -12,12 +12,6 @@ namespace WaylandNET
             set => ObjectMap[id] = value;
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
         public uint AllocateId()
         {
             return ObjectMap.AllocateId();
@@ -64,7 +58,10 @@ namespace WaylandNET
                         break;
                 }
             }
-            @object.Handle(message.opcode, arguments.ToArray());
+            if (@object.IsAlive)
+            {
+                @object.Handle(message.opcode, arguments.ToArray());
+            }
         }
 
         public void Marshal(uint id, ushort opcode, params object[] arguments)
@@ -130,10 +127,9 @@ namespace WaylandNET
             ObjectMap = objectMap;
         }
 
-        protected virtual void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (disposing)
-                WireConnection.Dispose();
+            WireConnection.Dispose();
         }
     }
 }

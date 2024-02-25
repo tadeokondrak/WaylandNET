@@ -11,7 +11,7 @@ namespace WaylandNET.Client
         {
             free = new List<int>();
         }
-        
+
         public override uint AllocateId()
         {
             if (free.Count != 0)
@@ -30,9 +30,10 @@ namespace WaylandNET.Client
 
         public override void DeallocateId(uint id)
         {
-            if (id >= ClientRangeBegin && id <= ClientRangeEnd)
+            base[id] = null;
+            if (ClientRangeBegin <= id && id <= ClientRangeEnd)
                 free.Add((int)(id - ClientRangeBegin));
-            else if (id >= ServerRangeBegin && id <= ServerRangeEnd)
+            else if (ServerRangeBegin <= id && id <= ServerRangeEnd)
                 throw new IndexOutOfRangeException("Cannot deallocate server-range ID");
             else
                 throw new IndexOutOfRangeException("Cannot deallocate null ID");

@@ -6,7 +6,7 @@ using WaylandNET.Client.Protocol;
 
 namespace WaylandNET.Client
 {
-    public sealed class WaylandClientConnection : WaylandConnection, IDisposable
+    public sealed class WaylandClientConnection : WaylandConnection
     {
         public WlDisplay Display { get; private set; }
 
