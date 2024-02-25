@@ -12,6 +12,7 @@ namespace WaylandNETScanner
     static class Program
     {
         static bool internalMode;
+        static Dictionary<string, Interface> interfaces;
 
         static string Recase(string input, bool initial)
         {
@@ -55,11 +56,9 @@ namespace WaylandNETScanner
             if (argument.Enum != null && !raw)
             {
                 var split = argument.Enum.Split('.');
-                if (EnumHasConflictingMethod(@interface, split[split.Length - 1]))
-                {
-                    if (split.Length == 1 || split[0] == @interface.Name)
-                        split[split.Length - 1] += "Enum";
-                }
+                var enumInterface = split.Length == 1 ? @interface : interfaces[split[0]];
+                if (EnumHasConflictingMethod(enumInterface, split[^1]))
+                    split[^1] += "Enum";
                 return String.Join('.', split.Select(PascalCase));
             }
             switch (argument.Type)
@@ -118,8 +117,7 @@ namespace WaylandNETScanner
         {
             return @interface.Requests
                 .Concat(@interface.Events)
-                .Where(message => message.Name == enumName)
-                .FirstOrDefault() != null;
+                .Any(message => message.Name == enumName);
         }
 
         static void GenerateDocComment(CodeGenerator gen, string text)
@@ -438,6 +436,7 @@ namespace WaylandNETScanner
 
         static void GenerateProtocol(CodeGenerator gen, Protocol protocol)
         {
+            interfaces = protocol.Interfaces.ToDictionary(it => it.Name, it => it);
             GenerateCopyrightComment(gen, protocol.Copyright);
             gen.AppendLine("#pragma warning disable 0162");
             gen.AppendLine("using System;");

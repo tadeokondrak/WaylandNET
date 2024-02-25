@@ -326,6 +326,9 @@ namespace WaylandNET.Client.Protocol
     /// <para>
     /// Clients can handle the 'done' event to get notified when
     /// the related request is done.
+    /// 
+    /// Note, because wl_callback objects are created from multiple independent
+    /// factory interfaces, the wl_callback interface is frozen at version 1.
     /// </para>
     /// </summary>
     public sealed class WlCallback : WaylandClientObject
