@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>WaylandNET</PackageId>
     <Authors>Tadeo Kondrak</Authors>
     <Version>0.2.0</Version>

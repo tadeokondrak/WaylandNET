@@ -1,10 +1,14 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaylandNET", "WaylandNET\WaylandNET.csproj", "{343A7B5E-2F3F-452E-8409-3D0929037711}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaylandNETScanner", "WaylandNETScanner\WaylandNETScanner.csproj", "{6FCC5448-401E-41B8-A629-2D44A8640E69}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{34BD718E-694B-4E50-AF9F-60DE24A3B3FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ListGlobals", "Examples\ListGlobals\ListGlobals.csproj", "{76E3E50A-FD66-4C0C-9351-3E873E629EB1}"
 EndProject
 Global
 	GlobalSection(SolutionProperties) = preSolution
@@ -43,5 +47,20 @@ Global
 		{6FCC5448-401E-41B8-A629-2D44A8640E69}.Release|x64.Build.0 = Release|Any CPU
 		{6FCC5448-401E-41B8-A629-2D44A8640E69}.Release|x86.ActiveCfg = Release|Any CPU
 		{6FCC5448-401E-41B8-A629-2D44A8640E69}.Release|x86.Build.0 = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|x64.Build.0 = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Debug|x86.Build.0 = Debug|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|x64.ActiveCfg = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|x64.Build.0 = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|x86.ActiveCfg = Release|Any CPU
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{76E3E50A-FD66-4C0C-9351-3E873E629EB1} = {34BD718E-694B-4E50-AF9F-60DE24A3B3FA}
 	EndGlobalSection
 EndGlobal
